@@ -544,23 +544,34 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
         ))}
       </div>
 
-      <div className="print-sheet">
-        {sheet.placed.map((p) => (
-          <div
-            key={`print-${p.id}`}
-            className="print-plate-piece"
-            style={{
-              left: `${(p.x / sheetW) * 92}mm`,
-              top: `${(p.y / sheetH) * 184}mm`,
-              width: `${(p.drawW / sheetW) * 92}mm`,
-              height: `${(p.drawH / sheetH) * 184}mm`,
-            }}
-          >
-            <b>{p.row}</b>
-            <span>{p.w}×{p.h}</span>
-            {p.rotated && <small>回転</small>}
-          </div>
-        ))}
+      <div className="print-sheet print-sheet-landscape">
+        {sheet.placed.map((p) => {
+          // 印刷時だけA4横に合わせて母材を90度回転表示
+          // 元の4×8縦向き座標 x,y,w,h を横向き座標へ変換
+          const printW = 260;
+          const printH = 130;
+          const left = (p.y / sheetH) * printW;
+          const top = ((sheetW - p.x - p.drawW) / sheetW) * printH;
+          const width = (p.drawH / sheetH) * printW;
+          const height = (p.drawW / sheetW) * printH;
+
+          return (
+            <div
+              key={`print-${p.id}`}
+              className="print-plate-piece"
+              style={{
+                left: `${left}mm`,
+                top: `${top}mm`,
+                width: `${width}mm`,
+                height: `${height}mm`,
+              }}
+            >
+              <b>{p.row}</b>
+              <span>{p.w}×{p.h}</span>
+              {p.rotated && <small>回転</small>}
+            </div>
+          );
+        })}
       </div>
 
       <p className="cut-line">
@@ -935,7 +946,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step3：印刷時は4×8母材1枚を1ページに収める安全版です。</p>
+        <p>Step3.2：印刷時はA4横に合わせて4×8母材を横向き表示します。</p>
       </header>
 
       <nav className="tabs no-print">

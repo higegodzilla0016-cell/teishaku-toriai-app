@@ -697,3 +697,49 @@ textarea.small {
     break-after: avoid !important;
   }
 }
+
+
+/* Step3.2 A4横に合わせて母材を横向き印刷 */
+@media print {
+  .print-sheet {
+    width: 260mm !important;
+    height: 130mm !important;
+    margin: 4mm auto 0 auto !important;
+  }
+
+  .print-sheet-landscape {
+    width: 260mm !important;
+    height: 130mm !important;
+  }
+
+  .sheet-card {
+    max-height: 185mm !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: hidden !important;
+  }
+
+  .sheet-card .bar-head {
+    margin-bottom: 1mm !important;
+  }
+
+  .sheet-card .bar-meta {
+    margin-bottom: 1mm !important;
+  }
+
+  .print-title {
+    margin-bottom: 1mm !important;
+  }
+
+  .print-plate-piece {
+    font-size: 5.2pt !important;
+  }
+
+  .print-plate-piece b {
+    font-size: 6.2pt !important;
+  }
+
+  .print-plate-piece span {
+    font-size: 4.8pt !important;
+  }
+}
