@@ -39,6 +39,10 @@ const DEFAULT_MATERIALS = [
   { id: "ss400_fb506_6m", name: "SS400 FB 50x6 6m", stockLength: 6000, kerf: 3, kgPerMeter: 2.36 },
 ];
 
+
+const MATERIAL_PRESET_VERSION = "ss400-standard-v1";
+
+
 const SAMPLE_PARTS = `870x4
 772x6
 500x6
@@ -1721,7 +1725,15 @@ function MobileSample() {
 
 function App() {
   const [tab, setTab] = useState("single");
-  const [materials, setMaterials] = useState(loadLocal("materials", DEFAULT_MATERIALS));
+  const [materials, setMaterials] = useState(() => {
+    const currentVersion = localStorage.getItem("materialPresetVersion");
+    if (currentVersion !== MATERIAL_PRESET_VERSION) {
+      localStorage.setItem("materials", JSON.stringify(DEFAULT_MATERIALS));
+      localStorage.setItem("materialPresetVersion", MATERIAL_PRESET_VERSION);
+      return DEFAULT_MATERIALS;
+    }
+    return loadLocal("materials", DEFAULT_MATERIALS);
+  });
 
   function clearAllSavedData() {
     if (!window.confirm("保存案件・保存材料・過去入力をすべて削除し、初期材料リストに戻しますか？")) return;
@@ -1730,13 +1742,15 @@ function App() {
     localStorage.removeItem("platePartsText");
     localStorage.removeItem("barProjects");
     localStorage.removeItem("plateProjects");
-    localStorage.removeItem("materials");
+    localStorage.setItem("materials", JSON.stringify(DEFAULT_MATERIALS));
+    localStorage.setItem("materialPresetVersion", MATERIAL_PRESET_VERSION);
     window.location.reload();
   }
 
   function resetMaterialsOnly() {
     if (!window.confirm("材料登録だけを初期材料リストに戻しますか？")) return;
-    localStorage.removeItem("materials");
+    localStorage.setItem("materials", JSON.stringify(DEFAULT_MATERIALS));
+    localStorage.setItem("materialPresetVersion", MATERIAL_PRESET_VERSION);
     setMaterials(DEFAULT_MATERIALS);
   }
 
@@ -1748,7 +1762,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step11：初期材料をSS400の規格寸法ベースに整理しています。</p>
+        <p>Step12：起動時にSS400規格材料へ自動リセットされる版です。</p>
         <button type="button" className="sub clear-storage-btn" onClick={clearAllSavedData}>保存データを全削除</button>
       </header>
 
