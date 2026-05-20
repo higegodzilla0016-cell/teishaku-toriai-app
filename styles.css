@@ -797,3 +797,22 @@ textarea.small {
     font-size: 13px;
   }
 }
+
+
+/* Step5 端材詰め改善メッセージ */
+.improve-note {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.shear-steps p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}

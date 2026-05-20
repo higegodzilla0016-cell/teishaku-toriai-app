@@ -588,6 +588,56 @@ function optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit) {
   return { sheets, tooLarge };
 }
 
+
+function optimizeShearScrapFill(parts, sheetW, sheetH, kerf) {
+  // シャーリング端材詰め改善：
+  // 大物を入れた後、既存母材の空き矩形へ小物を優先的に詰める。
+  // 完全なシャーリング順ではなく、母材枚数を減らすための補助候補。
+  const sortModes = ["area", "height", "width"];
+  const candidates = sortModes.map((mode) => optimizePlatePartsOnce(parts, sheetW, sheetH, kerf, true, mode));
+
+  const converted = candidates.map((candidate) => {
+    const sheets = candidate.sheets.map((sheet, sheetIndex) => ({
+      ...sheet,
+      index: sheetIndex + 1,
+      bandDirection: "端材詰め",
+      bands: [],
+      placed: sheet.placed.map((p) => ({
+        ...p,
+        bandDirection: "端材詰め",
+      })),
+    }));
+
+    return {
+      sheets,
+      tooLarge: candidate.tooLarge,
+      fillMethod: "端材詰め",
+    };
+  });
+
+  converted.sort((a, b) => scoreShearResult(a, sheetW, sheetH) - scoreShearResult(b, sheetW, sheetH));
+  return converted[0] || { sheets: [], tooLarge: [] };
+}
+
+function improveShearByMovingSmallParts(baseResult, parts, sheetW, sheetH, kerf) {
+  // まず端材詰め候補を作り、母材枚数が減る・または端材が減るなら採用
+  const fillResult = optimizeShearScrapFill(parts, sheetW, sheetH, kerf);
+  const baseScore = scoreShearResult(baseResult, sheetW, sheetH);
+  const fillScore = scoreShearResult(fillResult, sheetW, sheetH);
+
+  if (fillScore < baseScore) {
+    return {
+      ...fillResult,
+      improvedByScrapFill: true,
+    };
+  }
+
+  return {
+    ...baseResult,
+    improvedByScrapFill: false,
+  };
+}
+
 function scoreShearResult(result, sheetW, sheetH) {
   const sheetCount = result.sheets.length;
   const tooLargePenalty = result.tooLarge.length * 100000000000000;
@@ -600,20 +650,27 @@ function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed, bandMo
   // 実務上 1664×352 のような部材を4x8長手に合わせるため、シャーリングでは向き合わせを許可する。
   const allowTurnForFit = true;
 
+  let baseResult;
+
   if (bandMode === "horizontal") {
-    return optimizeShearHorizontal(parts, sheetW, sheetH, kerf, allowTurnForFit);
+    baseResult = optimizeShearHorizontal(parts, sheetW, sheetH, kerf, allowTurnForFit);
+  } else if (bandMode === "vertical") {
+    baseResult = optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit);
+  } else {
+    const horizontal = optimizeShearHorizontal(parts, sheetW, sheetH, kerf, allowTurnForFit);
+    const vertical = optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit);
+    baseResult = scoreShearResult(vertical, sheetW, sheetH) < scoreShearResult(horizontal, sheetW, sheetH)
+      ? vertical
+      : horizontal;
   }
 
-  if (bandMode === "vertical") {
-    return optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit);
-  }
+  // 追加改善：500×300などの小物が後ろの母材に逃げた場合、既存母材の端材へ再配置する候補を比較
+  const improved = improveShearByMovingSmallParts(baseResult, parts, sheetW, sheetH, kerf);
 
-  const horizontal = optimizeShearHorizontal(parts, sheetW, sheetH, kerf, allowTurnForFit);
-  const vertical = optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit);
-
-  return scoreShearResult(vertical, sheetW, sheetH) < scoreShearResult(horizontal, sheetW, sheetH)
-    ? vertical
-    : horizontal;
+  return {
+    ...improved,
+    selectedBandMode: bandMode,
+  };
 }
 
 function plateWeightKg(width, height, thickness, count = 1) {
@@ -714,13 +771,19 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
       {mode === "shear" && (
         <div className="shear-steps">
           <strong>シャーリング順（簡易）</strong>
-          <ol>
-            {(sheet.bands || []).map((band) => (
-              <li key={`band-${band.index}`}>
-                {sheet.bandDirection || "帯"} {band.index}：{sheet.bandDirection === "縦帯" ? `横方向 ${Math.round(band.x)}〜${Math.round(band.x + band.w)}mm で帯取り` : `長手方向 ${Math.round(band.y)}〜${Math.round(band.y + band.h)}mm で帯取り`} → 帯内で {band.parts.map((p) => `${p.w}×${p.h}${p.rotated ? "(向き合わせ)" : ""}`).join(" / ")} を切断
-              </li>
-            ))}
-          </ol>
+          {sheet.bandDirection === "端材詰め" ? (
+            <p>
+              端材詰め配置：大物を先に配置し、500×300などの小物を既存母材の空きスペースへ詰めています。切断順は実機に合わせて確認してください。
+            </p>
+          ) : (
+            <ol>
+              {(sheet.bands || []).map((band) => (
+                <li key={`band-${band.index}`}>
+                  {sheet.bandDirection || "帯"} {band.index}：{sheet.bandDirection === "縦帯" ? `横方向 ${Math.round(band.x)}〜${Math.round(band.x + band.w)}mm で帯取り` : `長手方向 ${Math.round(band.y)}〜${Math.round(band.y + band.h)}mm で帯取り`} → 帯内で {band.parts.map((p) => `${p.w}×${p.h}${p.rotated ? "(向き合わせ)" : ""}`).join(" / ")} を切断
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       )}
     </div>
@@ -951,6 +1014,12 @@ function PlateCalc() {
 
         <PlateSummary result={result} parts={parts} sheetW={Number(sheetW)} sheetH={Number(sheetH)} thickness={Number(thickness)} />
 
+        {mode === "shear" && result.improvedByScrapFill && (
+          <div className="improve-note">
+            端材詰め改善を適用：小物部材を既存母材の空きスペースへ再配置しています。
+          </div>
+        )}
+
         {result.tooLarge.length > 0 && (
           <div className="warn">
             母材に入らない部材があります：
@@ -1093,7 +1162,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step4：レーザー取り合い改善、シャーリング縦帯/横帯の自動選択を追加しています。</p>
+        <p>Step5：シャーリング端材詰め改善で、小物を既存母材の空きへ寄せます。</p>
       </header>
 
       <nav className="tabs no-print">
