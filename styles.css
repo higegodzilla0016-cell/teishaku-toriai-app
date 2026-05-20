@@ -260,3 +260,181 @@ textarea.small { min-height: 90px; }
     display: none !important;
   }
 }
+
+
+/* ===== 最終印刷修正：A4横・母材1枚を必ず1ページ内に収める ===== */
+@page {
+  size: A4 landscape;
+  margin: 5mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 297mm !important;
+    height: 210mm !important;
+    background: white !important;
+    overflow: visible !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  main {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .no-print,
+  header,
+  .tabs,
+  .panel,
+  .summary,
+  .warn,
+  h3,
+  .print-sheet-wrap,
+  .shear-steps {
+    display: none !important;
+  }
+
+  .result {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .grid,
+  .plate-grid,
+  .sheet-list {
+    display: block !important;
+  }
+
+  .print-title {
+    display: block !important;
+    margin: 0 0 2mm 0 !important;
+    padding: 0 !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .print-title h2 {
+    font-size: 10pt !important;
+    margin: 0 0 1mm 0 !important;
+    line-height: 1.1 !important;
+  }
+
+  .print-title p {
+    font-size: 7pt !important;
+    line-height: 1.15 !important;
+    margin: 0 !important;
+  }
+
+  .sheet-card {
+    display: block !important;
+    width: 100% !important;
+    height: 196mm !important;
+    min-height: 0 !important;
+    max-height: 196mm !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    page-break-before: always !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    break-before: page !important;
+    break-after: page !important;
+    break-inside: avoid !important;
+  }
+
+  .sheet-card:first-child {
+    page-break-before: auto !important;
+    break-before: auto !important;
+  }
+
+  .sheet-card .bar-head {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin: 0 0 1mm 0 !important;
+    padding: 0 !important;
+  }
+
+  .sheet-card .bar-head strong {
+    font-size: 9pt !important;
+    line-height: 1.1 !important;
+  }
+
+  .sheet-card .bar-head span {
+    font-size: 6pt !important;
+    padding: .5mm 1.5mm !important;
+  }
+
+  .sheet-card .bar-meta {
+    display: block !important;
+    font-size: 6.5pt !important;
+    line-height: 1.1 !important;
+    margin: 0 0 1mm 0 !important;
+    padding: 0 !important;
+  }
+
+  /*
+    重要：
+    既存のJSは画面用に 4x8 を約 390px x 780px で描画している。
+    印刷時は、その画面用図をCSSで安全サイズに縮小する。
+    これにより中の部材位置も一緒に縮小され、図が分裂しない。
+  */
+  .screen-sheet,
+  .sheet-visual {
+    display: block !important;
+    transform-origin: top left !important;
+    transform: scale(0.63) !important;
+    width: 780px !important;
+    height: 1560px !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    border: 2px solid #172033 !important;
+    overflow: hidden !important;
+  }
+
+  .sheet-card .cut-line {
+    display: block !important;
+    font-size: 5.5pt !important;
+    line-height: 1.1 !important;
+    margin-top: -570px !important;
+    max-height: 10mm !important;
+    overflow: hidden !important;
+  }
+
+  .plate-piece {
+    border-width: 1px !important;
+    font-size: 8px !important;
+    line-height: 1.05 !important;
+    overflow: hidden !important;
+    background: rgba(255,255,255,.92) !important;
+  }
+
+  .plate-piece b {
+    font-size: 9px !important;
+  }
+
+  .plate-piece span {
+    font-size: 8px !important;
+  }
+
+  .plate-piece small {
+    display: none !important;
+  }
+
+  button {
+    display: none !important;
+  }
+}
