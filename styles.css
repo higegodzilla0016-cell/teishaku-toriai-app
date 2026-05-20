@@ -816,3 +816,145 @@ textarea.small {
   font-size: 13px;
   line-height: 1.6;
 }
+
+
+/* Step7 現場実用機能 */
+.sheet-weight {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.sheet-weight span {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dim,
+.print-dim-top,
+.print-dim-side {
+  position: absolute;
+  z-index: 5;
+  background: rgba(23, 32, 51, .9);
+  color: white;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.dim-top {
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dim-side {
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.print-dim-top {
+  top: 2mm;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.print-dim-side {
+  right: 2mm;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.project-actions {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.saved-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.saved-list div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 7px 8px;
+  font-size: 13px;
+}
+
+.mini-danger {
+  padding: 5px 8px;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.shear-steps li {
+  margin-bottom: 4px;
+}
+
+@media print {
+  .project-actions,
+  .saved-list {
+    display: none !important;
+  }
+
+  .sheet-weight {
+    display: flex !important;
+    gap: 2mm !important;
+    margin: 0 0 1.5mm 0 !important;
+  }
+
+  .sheet-weight span {
+    font-size: 6.5pt !important;
+    padding: .7mm 1.5mm !important;
+  }
+
+  .print-dim-top,
+  .print-dim-side {
+    font-size: 5.5pt !important;
+    padding: .4mm 1.2mm !important;
+  }
+
+  .dim {
+    display: none !important;
+  }
+
+  .shear-steps {
+    display: block !important;
+    font-size: 5.8pt !important;
+    max-height: 26mm !important;
+  }
+
+  .shear-steps li {
+    margin-bottom: .5mm !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .project-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .sheet-weight span {
+    font-size: 12px;
+  }
+}
