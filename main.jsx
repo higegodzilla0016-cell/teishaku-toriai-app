@@ -374,6 +374,122 @@ function optimizePlateParts(parts, sheetW, sheetH, kerf, allowRotate) {
   return { sheets, tooLarge };
 }
 
+
+function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed) {
+  // シャーリング向けの簡易版：
+  // 回転なし、長手方向へ帯取りしてから帯内で横方向に並べる。
+  // 縞目固定を想定する場合も同じく回転なし。
+  const sorted = [...parts].sort((a, b) => {
+    if (b.h !== a.h) return b.h - a.h;
+    return b.w - a.w;
+  });
+
+  const sheets = [];
+  const tooLarge = [];
+
+  function newSheet() {
+    const sheet = {
+      id: `sheet-${sheets.length + 1}`,
+      index: sheets.length + 1,
+      usedArea: 0,
+      placed: [],
+      bands: [],
+    };
+    sheets.push(sheet);
+    return sheet;
+  }
+
+  for (const part of sorted) {
+    if (part.w + kerf > sheetW || part.h + kerf > sheetH) {
+      tooLarge.push(part);
+      continue;
+    }
+
+    let placed = false;
+
+    for (const sheet of sheets) {
+      // 既存の帯へ入れる
+      for (const band of sheet.bands) {
+        if (part.h <= band.h && band.usedX + part.w + (band.parts.length ? kerf : 0) <= sheetW) {
+          const x = band.usedX + (band.parts.length ? kerf : 0);
+          const y = band.y;
+          const p = {
+            ...part,
+            x,
+            y,
+            drawW: part.w,
+            drawH: part.h,
+            rotated: false,
+            bandIndex: band.index,
+          };
+          band.parts.push(p);
+          band.usedX = x + part.w;
+          sheet.placed.push(p);
+          sheet.usedArea += part.area;
+          placed = true;
+          break;
+        }
+      }
+      if (placed) break;
+
+      // 新しい帯を作る
+      const usedY = sheet.bands.reduce((sum, band) => sum + band.h + kerf, 0);
+      if (usedY + part.h <= sheetH) {
+        const band = {
+          index: sheet.bands.length + 1,
+          x: 0,
+          y: usedY,
+          h: part.h,
+          usedX: part.w,
+          parts: [],
+        };
+        const p = {
+          ...part,
+          x: 0,
+          y: usedY,
+          drawW: part.w,
+          drawH: part.h,
+          rotated: false,
+          bandIndex: band.index,
+        };
+        band.parts.push(p);
+        sheet.bands.push(band);
+        sheet.placed.push(p);
+        sheet.usedArea += part.area;
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      const sheet = newSheet();
+      const band = {
+        index: 1,
+        x: 0,
+        y: 0,
+        h: part.h,
+        usedX: part.w,
+        parts: [],
+      };
+      const p = {
+        ...part,
+        x: 0,
+        y: 0,
+        drawW: part.w,
+        drawH: part.h,
+        rotated: false,
+        bandIndex: 1,
+      };
+      band.parts.push(p);
+      sheet.bands.push(band);
+      sheet.placed.push(p);
+      sheet.usedArea += part.area;
+    }
+  }
+
+  return { sheets, tooLarge };
+}
+
 function plateWeightKg(width, height, thickness, count = 1) {
   return (width * height * thickness * 7.85 / 1000000) * count;
 }
@@ -396,7 +512,7 @@ function PlateSummary({ result, parts, sheetW, sheetH, thickness }) {
   );
 }
 
-function PlateDrawing({ sheet, sheetW, sheetH }) {
+function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
   const scale = Math.min(1, 760 / sheetW);
 
   return (
@@ -431,6 +547,19 @@ function PlateDrawing({ sheet, sheetW, sheetH }) {
       <p className="cut-line">
         {sheet.placed.map((p) => `${p.row}:${p.w}×${p.h}${p.rotated ? "(回転)" : ""}`).join(" / ")}
       </p>
+
+      {mode === "shear" && (
+        <div className="shear-steps">
+          <strong>シャーリング順（簡易）</strong>
+          <ol>
+            {(sheet.bands || []).map((band) => (
+              <li key={`band-${band.index}`}>
+                帯{band.index}：長手方向 {Math.round(band.y)}〜{Math.round(band.y + band.h)}mm で帯取り → 帯内で {band.parts.map((p) => `${p.w}×${p.h}`).join(" / ")} を切断
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   );
 }
@@ -553,11 +682,13 @@ function SingleCalc({ materials, setMaterials }) {
 }
 
 function PlateCalc() {
+  const [mode, setMode] = useState("laser");
   const [sheetW, setSheetW] = useState(1219);
   const [sheetH, setSheetH] = useState(2438);
   const [thickness, setThickness] = useState(6);
   const [kerf, setKerf] = useState(3);
   const [allowRotate, setAllowRotate] = useState(true);
+  const [grainFixed, setGrainFixed] = useState(true);
   const [partsText, setPartsText] = useState(loadLocal("platePartsText", SAMPLE_PLATE_PARTS));
 
   useEffect(() => {
@@ -565,15 +696,24 @@ function PlateCalc() {
   }, [partsText]);
 
   const parts = useMemo(() => parsePlateParts(partsText), [partsText]);
+  const effectiveRotate = mode === "laser" ? allowRotate : false;
   const result = useMemo(
-    () => optimizePlateParts(parts, Number(sheetW), Number(sheetH), Number(kerf), allowRotate),
-    [parts, sheetW, sheetH, kerf, allowRotate]
+    () => mode === "shear"
+      ? optimizeShearPlateParts(parts, Number(sheetW), Number(sheetH), Number(kerf), grainFixed)
+      : optimizePlateParts(parts, Number(sheetW), Number(sheetH), Number(kerf), effectiveRotate),
+    [parts, sheetW, sheetH, kerf, effectiveRotate, mode, grainFixed]
   );
 
   return (
     <div className="grid plate-grid">
       <section className="panel no-print">
         <h2>4×8板材取り合い</h2>
+
+        <label>加工方法</label>
+        <select value={mode} onChange={(e) => setMode(e.target.value)}>
+          <option value="laser">レーザー切断ver</option>
+          <option value="shear">シャーリングver</option>
+        </select>
 
         <div className="two">
           <div>
@@ -597,10 +737,19 @@ function PlateCalc() {
           </div>
         </div>
 
-        <label className="check-row">
-          <input type="checkbox" checked={allowRotate} onChange={(e) => setAllowRotate(e.target.checked)} />
-          回転あり
-        </label>
+        {mode === "laser" && (
+          <label className="check-row">
+            <input type="checkbox" checked={allowRotate} onChange={(e) => setAllowRotate(e.target.checked)} />
+            回転あり
+          </label>
+        )}
+
+        {mode === "shear" && (
+          <label className="check-row">
+            <input type="checkbox" checked={grainFixed} onChange={(e) => setGrainFixed(e.target.checked)} />
+            縞目固定・回転なし
+          </label>
+        )}
 
         <label>部材寸法</label>
         <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} />
@@ -617,7 +766,9 @@ function PlateCalc() {
       <section className="result">
         <div className="print-title">
           <h2>4×8板材取り合い指示書</h2>
-          <p>母材：{sheetW}×{sheetH}mm / 板厚：{thickness}mm / 切断ロス：{kerf}mm / {allowRotate ? "回転あり" : "回転なし"}</p>
+          <p>
+            方法：{mode === "shear" ? "シャーリングver" : "レーザー切断ver"} / 母材：{sheetW}×{sheetH}mm / 板厚：{thickness}mm / 切断ロス：{kerf}mm / {mode === "shear" ? "縞目固定・回転なし" : (allowRotate ? "回転あり" : "回転なし")}
+          </p>
         </div>
 
         <PlateSummary result={result} parts={parts} sheetW={Number(sheetW)} sheetH={Number(sheetH)} thickness={Number(thickness)} />
@@ -632,7 +783,7 @@ function PlateCalc() {
         <h3>板取り結果</h3>
         <div className="sheet-list">
           {result.sheets.map((sheet) => (
-            <PlateDrawing key={sheet.id} sheet={sheet} sheetW={Number(sheetW)} sheetH={Number(sheetH)} />
+            <PlateDrawing key={sheet.id} sheet={sheet} sheetW={Number(sheetW)} sheetH={Number(sheetH)} mode={mode} />
           ))}
         </div>
       </section>
@@ -764,7 +915,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>まずは安全版：定尺計算に4×8板材タブだけ追加しています。</p>
+        <p>Step2：4×8板材にシャーリングver / レーザー切断verの切替を追加しています。</p>
       </header>
 
       <nav className="tabs no-print">

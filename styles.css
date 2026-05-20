@@ -456,3 +456,25 @@ textarea.small {
     page-break-inside: avoid;
   }
 }
+
+
+.mode-note,
+.shear-steps {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.shear-steps strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.shear-steps ol {
+  margin: 0 0 0 18px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
