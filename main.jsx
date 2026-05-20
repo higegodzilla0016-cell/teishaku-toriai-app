@@ -525,16 +525,23 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
         使用面積 {(sheet.usedArea / 1000000).toFixed(3)}㎡ / 端材面積 {((sheetW * sheetH - sheet.usedArea) / 1000000).toFixed(3)}㎡
       </p>
 
-      <div className="sheet-visual screen-sheet" style={{ width: `${sheetW * scale}px`, height: `${sheetH * scale}px` }}>
+      <div
+        className="sheet-visual screen-sheet"
+        style={{
+          width: "100%",
+          maxWidth: "760px",
+          aspectRatio: `${sheetW} / ${sheetH}`,
+        }}
+      >
         {sheet.placed.map((p) => (
           <div
             key={p.id}
             className="plate-piece"
             style={{
-              left: `${p.x * scale}px`,
-              top: `${p.y * scale}px`,
-              width: `${p.drawW * scale}px`,
-              height: `${p.drawH * scale}px`,
+              left: `${(p.x / sheetW) * 100}%`,
+              top: `${(p.y / sheetH) * 100}%`,
+              width: `${(p.drawW / sheetW) * 100}%`,
+              height: `${(p.drawH / sheetH) * 100}%`,
             }}
           >
             <b>{p.row}</b>
@@ -946,7 +953,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step3.2：印刷時はA4横に合わせて4×8母材を横向き表示します。</p>
+        <p>Step3.3：スマホ画面で4×8母材図が横幅に収まるよう修正しています。</p>
       </header>
 
       <nav className="tabs no-print">

@@ -743,3 +743,57 @@ textarea.small {
     font-size: 4.8pt !important;
   }
 }
+
+
+/* Step3.3 スマホ表示のはみ出し防止 */
+.sheet-card {
+  overflow-x: hidden;
+}
+
+.sheet-visual.screen-sheet {
+  width: 100% !important;
+  max-width: 760px !important;
+  height: auto !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.screen-sheet .plate-piece {
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 600px) {
+  .result,
+  .panel,
+  .sheet-card {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .sheet-visual.screen-sheet {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .plate-piece {
+    font-size: 7px;
+    line-height: 1.05;
+  }
+
+  .plate-piece b {
+    font-size: 8px;
+  }
+
+  .plate-piece span {
+    font-size: 6.5px;
+  }
+
+  .bar-head strong {
+    font-size: 18px;
+  }
+
+  .bar-meta {
+    font-size: 13px;
+  }
+}
