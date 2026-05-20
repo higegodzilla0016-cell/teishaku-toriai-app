@@ -68,65 +68,160 @@ textarea.small { min-height: 90px; }
   .job-list { grid-template-columns: 1fr; }
   .three { grid-template-columns: 1fr; }
 }
-@media print {
-  body { background: white; }
-  main { width: 100%; padding: 0; }
-  .no-print { display: none !important; }
-  .result, .panel { box-shadow: none; border-radius: 0; padding: 0; }
-  .grid, .plate-grid { display: block; }
-  .summary { grid-template-columns: repeat(5, 1fr); }
-  .bar-card, .batch-result, .sheet-card { page-break-inside: avoid; }
-}
 
-.mode-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 6px 0 12px;
-}
-.mode-buttons button.active {
-  background: #172033;
-  color: white;
-}
-.cut-plan {
-  margin-top: 10px;
-  border-top: 1px dashed #cbd5e1;
-  padding-top: 10px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.cut-plan p {
-  margin-top: 4px;
-}
-.warn-small {
-  color: #b91c1c;
-  font-weight: 700;
-}
-
+/* ===== 印刷専用：A4横に収める修正版 ===== */
 @page {
   size: A4 landscape;
   margin: 8mm;
 }
 
 @media print {
-  .plate-print-area .summary {
-    grid-template-columns: repeat(5, 1fr);
-    margin-bottom: 8px;
+  html,
+  body {
+    width: 297mm;
+    min-height: 210mm;
+    background: white !important;
+    overflow: visible !important;
   }
-  .a4-landscape-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
+
+  main {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .no-print,
+  header,
+  .tabs,
+  .panel {
+    display: none !important;
+  }
+
+  .result {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .grid,
+  .plate-grid {
+    display: block !important;
+  }
+
+  .print-title {
+    margin: 0 0 5mm 0 !important;
+    page-break-after: avoid;
+  }
+
+  .print-title h2 {
+    font-size: 16pt !important;
+    margin: 0 0 2mm 0 !important;
+  }
+
+  .print-title p {
+    font-size: 9pt !important;
+  }
+
+  .summary {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 3mm !important;
+    margin-bottom: 4mm !important;
+    page-break-after: avoid;
+  }
+
+  .summary div {
+    padding: 2mm !important;
+    border-radius: 3mm !important;
+  }
+
+  .summary span {
+    font-size: 7pt !important;
+  }
+
+  .summary strong {
+    font-size: 11pt !important;
+  }
+
+  .sheet-list {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4mm !important;
+    align-items: start !important;
+  }
+
   .sheet-card {
-    padding: 8px;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    width: 100% !important;
+    max-width: 132mm !important;
+    padding: 2mm !important;
+    border-radius: 3mm !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
+
+  .sheet-card .bar-head strong {
+    font-size: 9pt !important;
+  }
+
+  .sheet-card .bar-head span,
+  .sheet-card .bar-meta,
+  .sheet-card .cut-line {
+    font-size: 6.5pt !important;
+    line-height: 1.25 !important;
+  }
+
   .sheet-visual {
-    max-height: 170mm;
+    /* 4x8をA4横の2列に収める */
+    width: 125mm !important;
+    height: 63mm !important;
+    max-width: 125mm !important;
+    max-height: 63mm !important;
+    transform: none !important;
+    overflow: hidden !important;
+    margin: 1.5mm 0 !important;
+    border: 1px solid #172033 !important;
+    background-size: 10mm 10mm !important;
   }
-  .cut-plan {
-    font-size: 9px;
+
+  .plate-piece {
+    font-size: 4.8pt !important;
+    line-height: 1.05 !important;
+    border-width: 0.4px !important;
+    overflow: hidden !important;
+  }
+
+  .plate-piece b {
+    font-size: 5.5pt !important;
+  }
+
+  .plate-piece span {
+    font-size: 4.5pt !important;
+  }
+
+  .plate-piece small {
+    display: none !important;
+  }
+
+  .bar-card,
+  .batch-result {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  h3 {
+    font-size: 11pt !important;
+    margin: 2mm 0 !important;
+  }
+
+  button {
+    display: none !important;
   }
 }
