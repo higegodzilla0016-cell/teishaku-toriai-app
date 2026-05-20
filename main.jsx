@@ -525,7 +525,7 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
         使用面積 {(sheet.usedArea / 1000000).toFixed(3)}㎡ / 端材面積 {((sheetW * sheetH - sheet.usedArea) / 1000000).toFixed(3)}㎡
       </p>
 
-      <div className="sheet-visual" style={{ width: `${sheetW * scale}px`, height: `${sheetH * scale}px` }}>
+      <div className="sheet-visual screen-sheet" style={{ width: `${sheetW * scale}px`, height: `${sheetH * scale}px` }}>
         {sheet.placed.map((p) => (
           <div
             key={p.id}
@@ -535,6 +535,25 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
               top: `${p.y * scale}px`,
               width: `${p.drawW * scale}px`,
               height: `${p.drawH * scale}px`,
+            }}
+          >
+            <b>{p.row}</b>
+            <span>{p.w}×{p.h}</span>
+            {p.rotated && <small>回転</small>}
+          </div>
+        ))}
+      </div>
+
+      <div className="print-sheet">
+        {sheet.placed.map((p) => (
+          <div
+            key={`print-${p.id}`}
+            className="print-plate-piece"
+            style={{
+              left: `${(p.x / sheetW) * 92}mm`,
+              top: `${(p.y / sheetH) * 184}mm`,
+              width: `${(p.drawW / sheetW) * 92}mm`,
+              height: `${(p.drawH / sheetH) * 184}mm`,
             }}
           >
             <b>{p.row}</b>
@@ -563,6 +582,7 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
     </div>
   );
 }
+
 
 /* ==============================
    画面
@@ -915,7 +935,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step2：4×8板材にシャーリングver / レーザー切断verの切替を追加しています。</p>
+        <p>Step3：印刷時は4×8母材1枚を1ページに収める安全版です。</p>
       </header>
 
       <nav className="tabs no-print">
