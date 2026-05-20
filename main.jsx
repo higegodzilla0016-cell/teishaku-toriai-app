@@ -1216,10 +1216,10 @@ function SingleCalc({ materials, setMaterials }) {
   const compare6000 = useMemo(() => optimize(parts, 6000, Number(kerf), scraps), [parts, kerf, scraps]);
 
   const totalPartLength = parts.reduce((s, p) => s + p.length, 0);
+  const newStockCount = result.bars.filter((b) => b.source === "定尺").length;
+  const oneStockWeight = getBarWeight(Number(stockLength), Number(kgPerMeter));
+  const totalRequiredStockWeight = oneStockWeight * newStockCount;
   const totalPartWeight = getBarWeight(totalPartLength, Number(kgPerMeter));
-  const totalStockWeight = result.bars
-    .filter((b) => b.source === "定尺")
-    .reduce((s, b) => s + getBarWeight(b.stockLength, Number(kgPerMeter)), 0);
   const totalScrapWeight = result.bars.reduce((s, b) => s + getBarWeight(b.scrap, Number(kgPerMeter)), 0);
 
   function saveMaterial() {
@@ -1328,7 +1328,26 @@ function SingleCalc({ materials, setMaterials }) {
 
         <label>重量 kg/m</label>
         <input type="number" step="0.001" value={kgPerMeter} onChange={(e) => setKgPerMeter(e.target.value)} />
-        <p className="hint">40x40x4L などは概算自動入力。正確に出す場合は鋼材表のkg/mを入力してください。</p>
+        <p className="hint">規格材料はkg/mを自動入力。正確に出す場合は鋼材表のkg/mを入力してください。</p>
+
+        <div className="left-weight-box">
+          <div>
+            <span>定尺1本重量</span>
+            <strong>{formatBarKg(oneStockWeight)}</strong>
+          </div>
+          <div>
+            <span>必要本数</span>
+            <strong>{newStockCount}本</strong>
+          </div>
+          <div>
+            <span>定尺総重量</span>
+            <strong>{formatBarKg(totalRequiredStockWeight)}</strong>
+          </div>
+          <div>
+            <span>使用部重量</span>
+            <strong>{formatBarKg(totalPartWeight)}</strong>
+          </div>
+        </div>
 
         <label>部材寸法</label>
         <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} placeholder="例：1664x352x3\n1064x552x3\n500x300x2" />
@@ -1353,10 +1372,13 @@ function SingleCalc({ materials, setMaterials }) {
 
         <Summary result={result} parts={parts} />
 
-        <div className="sheet-weight bar-total-weight">
-          <span>部材重量：{formatBarKg(totalPartWeight)}</span>
-          <span>新品定尺重量：{formatBarKg(totalStockWeight)}</span>
-          <span>端材重量目安：{formatBarKg(totalScrapWeight)}</span>
+        <div className="bar-weight-summary">
+          <div><span>kg/m</span><strong>{Number(kgPerMeter) ? `${Number(kgPerMeter).toFixed(3)}kg/m` : "-"}</strong></div>
+          <div><span>定尺1本重量</span><strong>{formatBarKg(oneStockWeight)}</strong></div>
+          <div><span>必要本数</span><strong>{newStockCount}本</strong></div>
+          <div><span>定尺総重量</span><strong>{formatBarKg(totalRequiredStockWeight)}</strong></div>
+          <div><span>使用部重量</span><strong>{formatBarKg(totalPartWeight)}</strong></div>
+          <div><span>端材重量目安</span><strong>{formatBarKg(totalScrapWeight)}</strong></div>
         </div>
 
         <div className="compare no-print">
@@ -1396,9 +1418,9 @@ function SingleCalc({ materials, setMaterials }) {
                 <p className="bar-meta">使用 {Math.round(bar.used)}mm / 端材 {Math.round(bar.scrap)}mm</p>
 
                 <div className="sheet-weight">
-                  <span>元材重量：{formatBarKg(stockWeight)}</span>
-                  <span>部材重量：{formatBarKg(usedWeight)}</span>
-                  <span>端材重量：{formatBarKg(scrapWeight)}</span>
+                  <span>{bar.source === "定尺" ? "定尺1本重量" : "端材元重量"}：{formatBarKg(stockWeight)}</span>
+                  <span>使用部重量：{formatBarKg(usedWeight)}</span>
+                  <span>残り重量：{formatBarKg(scrapWeight)}</span>
                 </div>
 
                 <div className="bar-visual">
@@ -1835,7 +1857,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step13：材料登録をSS400山形鋼・SS400 FBにカテゴリー分けしています。</p>
+        <p>Step15：定尺計算の入力側にも重量サマリーを表示しています。</p>
         <button type="button" className="sub clear-storage-btn" onClick={clearAllSavedData}>保存データを全削除</button>
       </header>
 
