@@ -1156,3 +1156,50 @@ textarea::placeholder {
     display: none !important;
   }
 }
+
+
+/* Step16 入力例をわかりやすく表示 */
+.input-example-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px;
+  margin: 10px 0 8px;
+}
+
+.input-example-box strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.input-example-box p {
+  color: #64748b;
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.input-example-box code {
+  display: block;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 7px 9px;
+  margin-top: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: #172033;
+}
+
+.input-example-box small {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+@media print {
+  .input-example-box {
+    display: none !important;
+  }
+}

@@ -1350,7 +1350,16 @@ function SingleCalc({ materials, setMaterials }) {
         </div>
 
         <label>部材寸法</label>
-        <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} placeholder="例：1664x352x3\n1064x552x3\n500x300x2" />
+        <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} placeholder="ここに部材寸法を入力" />
+        <div className="input-example-box">
+          <strong>入力例</strong>
+          <p>1行ずつ入力してください。</p>
+          <code>1664x352x3</code>
+          <code>1064x552x3</code>
+          <code>500x300x2</code>
+          <small>意味：幅1664mm×長さ352mmを3枚</small>
+        </div>
+
         <button type="button" className="sub sample-btn" onClick={() => setPartsText(SAMPLE_PLATE_PARTS)}>入力例を入れる</button>
 
         <label>再利用する端材 mm</label>
@@ -1857,7 +1866,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step15：定尺計算の入力側にも重量サマリーを表示しています。</p>
+        <p>Step16：部材寸法の入力例を見やすい1行レイアウトに変更しています。</p>
         <button type="button" className="sub clear-storage-btn" onClick={clearAllSavedData}>保存データを全削除</button>
       </header>
 
