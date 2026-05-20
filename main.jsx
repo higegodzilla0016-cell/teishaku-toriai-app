@@ -479,6 +479,11 @@ function PlateSummary({ result, parts, sheetW, sheetH, thickness }) {
 
 function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
   const scale = Math.min(1, 780 / sheetW);
+
+  // 印刷専用：A4横いっぱいに出すため、4×8を横向きに変換して描画する
+  const printW = 260;
+  const printH = 130;
+
   return (
     <div className="sheet-card">
       <div className="bar-head">
@@ -486,7 +491,8 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
         <span>4×8</span>
       </div>
       <p className="bar-meta">使用面積 {(sheet.usedArea / 1000000).toFixed(3)}㎡ / 端材面積 {((sheetW * sheetH - sheet.usedArea) / 1000000).toFixed(3)}㎡</p>
-      <div className="sheet-visual" style={{ width: `${sheetW * scale}px`, height: `${sheetH * scale}px` }}>
+
+      <div className="sheet-visual screen-sheet" style={{ width: `${sheetW * scale}px`, height: `${sheetH * scale}px` }}>
         {sheet.placed.map((p) => (
           <div
             key={p.id}
@@ -500,88 +506,49 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
           </div>
         ))}
       </div>
+
+      <div className="print-sheet-wrap">
+        <div className="print-sheet-horizontal">
+          {sheet.placed.map((p) => {
+            // 元の縦向き4×8を、印刷時だけ横向き4×8へ90度回転して配置
+            const left = (p.y / sheetH) * printW;
+            const top = ((sheetW - p.x - p.w) / sheetW) * printH;
+            const width = (p.h / sheetH) * printW;
+            const height = (p.w / sheetW) * printH;
+
+            return (
+              <div
+                key={`print-${p.id}`}
+                className="plate-piece print-piece"
+                style={{
+                  left: `${left}mm`,
+                  top: `${top}mm`,
+                  width: `${width}mm`,
+                  height: `${height}mm`,
+                }}
+              >
+                <b>{p.row}</b>
+                <span>{p.originalW}×{p.originalH}</span>
+                {p.rotated && <small>回転</small>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="cut-line">{sheet.placed.map((p) => `${p.row}:${p.originalW}×${p.originalH}${p.rotated ? "(回転)" : ""}`).join(" / ")}</div>
       {mode === "shear" && (
-        <div className="cut-plan">
+        <div className="shear-steps">
           <strong>シャーリング順</strong>
-          {sheet.cutPlan?.map((c) => <p key={c.step}>{c.step}. {c.text}</p>)}
-          <p className="bar-meta">手前残材：{Math.round(sheet.frontScrap || 0)}mm</p>
-          {sheet.warnings?.map((w, i) => <p className="warn-small" key={i}>{w}</p>)}
+          <ol>
+            {sheet.placed.slice(0, 8).map((p, i) => (
+              <li key={`step-${p.id}`}>
+                {i + 1}. ① 長手方向 {Math.round(p.y)}〜{Math.round(p.y + p.h)}mm で帯取り → ② 帯の中で {p.originalW}×{p.originalH}
+              </li>
+            ))}
+          </ol>
         </div>
       )}
-    </div>
-  );
-}
-
-function SingleCalc({ materials, setMaterials }) {
-  const [materialId, setMaterialId] = useState(materials[0]?.id || "m1");
-  const current = materials.find((m) => m.id === materialId) || materials[0];
-
-  const [materialName, setMaterialName] = useState(current?.name || "40x40x4L");
-  const [stockLength, setStockLength] = useState(current?.stockLength || 5500);
-  const [kerf, setKerf] = useState(current?.kerf || 3);
-  const [partsText, setPartsText] = useState(loadLocal("singlePartsText", SAMPLE_PARTS));
-  const [scrapsText, setScrapsText] = useState(loadLocal("scrapsText", "1200\n900"));
-
-  useEffect(() => { localStorage.setItem("singlePartsText", JSON.stringify(partsText)); }, [partsText]);
-  useEffect(() => { localStorage.setItem("scrapsText", JSON.stringify(scrapsText)); }, [scrapsText]);
-
-  useEffect(() => {
-    if (current) {
-      setMaterialName(current.name);
-      setStockLength(current.stockLength);
-      setKerf(current.kerf);
-    }
-  }, [materialId]);
-
-  const { parts } = useMemo(() => parseParts(partsText), [partsText]);
-  const scraps = useMemo(() => scrapsText.split(/\n+/).map((s, i) => ({ label: `端材${i + 1}`, length: Number(s.trim()) })).filter((s) => s.length > 0), [scrapsText]);
-  const result = useMemo(() => optimizeBars(parts, Number(stockLength), Number(kerf), scraps), [parts, stockLength, kerf, scraps]);
-  const compare5500 = useMemo(() => optimizeBars(parts, 5500, Number(kerf), scraps), [parts, kerf, scraps]);
-  const compare6000 = useMemo(() => optimizeBars(parts, 6000, Number(kerf), scraps), [parts, kerf, scraps]);
-
-  function saveMaterial() {
-    const item = { id: uid(), name: materialName, stockLength: Number(stockLength), kerf: Number(kerf) };
-    setMaterials((prev) => [...prev, item]);
-    setMaterialId(item.id);
-  }
-
-  return (
-    <div className="grid">
-      <section className="panel no-print">
-        <label>登録材料から選択</label>
-        <select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>{materials.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-        <label>材料名</label>
-        <input value={materialName} onChange={(e) => setMaterialName(e.target.value)} />
-        <div className="two">
-          <div><label>定尺長さ mm</label><input type="number" value={stockLength} onChange={(e) => setStockLength(e.target.value)} /></div>
-          <div><label>切断ロス mm</label><input type="number" value={kerf} onChange={(e) => setKerf(e.target.value)} /></div>
-        </div>
-        <label>部材寸法</label>
-        <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} />
-        <label>再利用する端材 mm</label>
-        <textarea className="small" value={scrapsText} onChange={(e) => setScrapsText(e.target.value)} />
-        <div className="actions">
-          <button><Calculator size={18} /> 計算</button>
-          <button type="button" className="sub" onClick={saveMaterial}><Save size={18} /> 材料保存</button>
-          <button type="button" className="sub" onClick={() => window.print()}><FileText size={18} /> PDF/印刷</button>
-          <button type="button" className="sub" onClick={() => { setPartsText(SAMPLE_PARTS); setScrapsText("1200\n900"); }}><RotateCcw size={18} /> 初期化</button>
-        </div>
-      </section>
-      <section className="result">
-        <div className="print-title"><h2>定尺取り合い切断指示書</h2><p>材料：{materialName} / 定尺：{stockLength}mm / 切断ロス：{kerf}mm</p></div>
-        <Summary result={result} parts={parts} />
-        <div className="compare no-print">
-          <h3>5.5m / 6m 比較</h3>
-          <div>
-            <article><strong>5.5m</strong><p>新品定尺：{compare5500.bars.filter((b) => b.source === "定尺").length}本</p><small>端材合計：{Math.round(compare5500.bars.reduce((s, b) => s + b.scrap, 0))}mm</small></article>
-            <article><strong>6m</strong><p>新品定尺：{compare6000.bars.filter((b) => b.source === "定尺").length}本</p><small>端材合計：{Math.round(compare6000.bars.reduce((s, b) => s + b.scrap, 0))}mm</small></article>
-          </div>
-        </div>
-        {result.tooLong.length > 0 && <div className="warn">定尺より長い部材があります：{result.tooLong.map((p) => p.length).join("、")}mm</div>}
-        <h3>割付結果・切断指示</h3>
-        <Bars result={result} kerf={kerf} />
-      </section>
     </div>
   );
 }
