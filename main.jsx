@@ -336,8 +336,26 @@ function placePart(sheet, part, allowRotate, kerf) {
   return true;
 }
 
-function optimizePlateParts(parts, sheetW, sheetH, kerf, allowRotate) {
-  const sorted = [...parts].sort((a, b) => b.area - a.area);
+function optimizePlatePartsOnce(parts, sheetW, sheetH, kerf, allowRotate, sortMode) {
+  const sorted = [...parts].sort((a, b) => {
+    if (sortMode === "height") {
+      const ah = Math.max(a.w, a.h);
+      const bh = Math.max(b.w, b.h);
+      if (bh !== ah) return bh - ah;
+      return b.area - a.area;
+    }
+    if (sortMode === "width") {
+      const aw = Math.min(a.w, a.h);
+      const bw = Math.min(b.w, b.h);
+      if (bw !== aw) return bw - aw;
+      return b.area - a.area;
+    }
+    if (sortMode === "areaAsc") {
+      return a.area - b.area;
+    }
+    return b.area - a.area;
+  });
+
   const sheets = [];
   const tooLarge = [];
 
@@ -374,14 +392,41 @@ function optimizePlateParts(parts, sheetW, sheetH, kerf, allowRotate) {
   return { sheets, tooLarge };
 }
 
+function scorePlateResult(result, sheetW, sheetH) {
+  const sheetCount = result.sheets.length;
+  const totalWaste = result.sheets.reduce((sum, s) => sum + (sheetW * sheetH - s.usedArea), 0);
+  const lastWaste = result.sheets.length ? (sheetW * sheetH - result.sheets[result.sheets.length - 1].usedArea) : 0;
+  return sheetCount * 1000000000000 + totalWaste * 10 + lastWaste;
+}
 
-function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed) {
-  // シャーリング向けの簡易版：
-  // 回転なし、長手方向へ帯取りしてから帯内で横方向に並べる。
-  // 縞目固定を想定する場合も同じく回転なし。
+function optimizePlateParts(parts, sheetW, sheetH, kerf, allowRotate) {
+  // レーザー用：複数の並び順で試して一番良い結果を採用
+  const sortModes = ["area", "height", "width", "areaAsc"];
+  const candidates = sortModes.map((mode) => optimizePlatePartsOnce(parts, sheetW, sheetH, kerf, allowRotate, mode));
+
+  candidates.sort((a, b) => scorePlateResult(a, sheetW, sheetH) - scorePlateResult(b, sheetW, sheetH));
+  return candidates[0] || { sheets: [], tooLarge: [] };
+}
+
+function orientPartForSheet(part, sheetW, sheetH, allowTurnForFit) {
+  const options = [
+    { w: part.w, h: part.h, turned: false },
+  ];
+
+  if (allowTurnForFit && part.w !== part.h) {
+    options.push({ w: part.h, h: part.w, turned: true });
+  }
+
+  return options.filter((o) => o.w <= sheetW && o.h <= sheetH);
+}
+
+function optimizeShearHorizontal(parts, sheetW, sheetH, kerf, allowTurnForFit) {
+  // 横帯：母材の横幅方向に部材を並べ、長手方向へ帯を積む
   const sorted = [...parts].sort((a, b) => {
-    if (b.h !== a.h) return b.h - a.h;
-    return b.w - a.w;
+    const ah = Math.min(a.w, a.h);
+    const bh = Math.min(b.w, b.h);
+    if (bh !== ah) return bh - ah;
+    return b.area - a.area;
   });
 
   const sheets = [];
@@ -394,13 +439,15 @@ function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed) {
       usedArea: 0,
       placed: [],
       bands: [],
+      bandDirection: "横帯",
     };
     sheets.push(sheet);
     return sheet;
   }
 
   for (const part of sorted) {
-    if (part.w + kerf > sheetW || part.h + kerf > sheetH) {
+    const options = orientPartForSheet(part, sheetW, sheetH, allowTurnForFit);
+    if (!options.length) {
       tooLarge.push(part);
       continue;
     }
@@ -408,22 +455,31 @@ function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed) {
     let placed = false;
 
     for (const sheet of sheets) {
-      // 既存の帯へ入れる
       for (const band of sheet.bands) {
-        if (part.h <= band.h && band.usedX + part.w + (band.parts.length ? kerf : 0) <= sheetW) {
-          const x = band.usedX + (band.parts.length ? kerf : 0);
-          const y = band.y;
-          const p = {
-            ...part,
-            x,
-            y,
-            drawW: part.w,
-            drawH: part.h,
-            rotated: false,
-            bandIndex: band.index,
-          };
+        for (const o of options) {
+          if (o.h <= band.h && band.usedX + o.w + (band.parts.length ? kerf : 0) <= sheetW) {
+            const x = band.usedX + (band.parts.length ? kerf : 0);
+            const y = band.y;
+            const p = { ...part, x, y, drawW: o.w, drawH: o.h, rotated: o.turned, bandIndex: band.index, bandDirection: "横帯" };
+            band.parts.push(p);
+            band.usedX = x + o.w;
+            sheet.placed.push(p);
+            sheet.usedArea += part.area;
+            placed = true;
+            break;
+          }
+        }
+        if (placed) break;
+      }
+      if (placed) break;
+
+      const usedY = sheet.bands.reduce((sum, band) => sum + band.h + kerf, 0);
+      for (const o of options) {
+        if (usedY + o.h <= sheetH) {
+          const band = { index: sheet.bands.length + 1, x: 0, y: usedY, h: o.h, usedX: o.w, parts: [] };
+          const p = { ...part, x: 0, y: usedY, drawW: o.w, drawH: o.h, rotated: o.turned, bandIndex: band.index, bandDirection: "横帯" };
           band.parts.push(p);
-          band.usedX = x + part.w;
+          sheet.bands.push(band);
           sheet.placed.push(p);
           sheet.usedArea += part.area;
           placed = true;
@@ -431,55 +487,13 @@ function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed) {
         }
       }
       if (placed) break;
-
-      // 新しい帯を作る
-      const usedY = sheet.bands.reduce((sum, band) => sum + band.h + kerf, 0);
-      if (usedY + part.h <= sheetH) {
-        const band = {
-          index: sheet.bands.length + 1,
-          x: 0,
-          y: usedY,
-          h: part.h,
-          usedX: part.w,
-          parts: [],
-        };
-        const p = {
-          ...part,
-          x: 0,
-          y: usedY,
-          drawW: part.w,
-          drawH: part.h,
-          rotated: false,
-          bandIndex: band.index,
-        };
-        band.parts.push(p);
-        sheet.bands.push(band);
-        sheet.placed.push(p);
-        sheet.usedArea += part.area;
-        placed = true;
-        break;
-      }
     }
 
     if (!placed) {
       const sheet = newSheet();
-      const band = {
-        index: 1,
-        x: 0,
-        y: 0,
-        h: part.h,
-        usedX: part.w,
-        parts: [],
-      };
-      const p = {
-        ...part,
-        x: 0,
-        y: 0,
-        drawW: part.w,
-        drawH: part.h,
-        rotated: false,
-        bandIndex: 1,
-      };
+      const o = options[0];
+      const band = { index: 1, x: 0, y: 0, h: o.h, usedX: o.w, parts: [] };
+      const p = { ...part, x: 0, y: 0, drawW: o.w, drawH: o.h, rotated: o.turned, bandIndex: 1, bandDirection: "横帯" };
       band.parts.push(p);
       sheet.bands.push(band);
       sheet.placed.push(p);
@@ -488,6 +502,118 @@ function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed) {
   }
 
   return { sheets, tooLarge };
+}
+
+function optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit) {
+  // 縦帯：母材の長手方向に部材を並べ、横幅方向へ帯を積む
+  const sorted = [...parts].sort((a, b) => {
+    const aw = Math.min(a.w, a.h);
+    const bw = Math.min(b.w, b.h);
+    if (bw !== aw) return bw - aw;
+    return b.area - a.area;
+  });
+
+  const sheets = [];
+  const tooLarge = [];
+
+  function newSheet() {
+    const sheet = {
+      id: `sheet-${sheets.length + 1}`,
+      index: sheets.length + 1,
+      usedArea: 0,
+      placed: [],
+      bands: [],
+      bandDirection: "縦帯",
+    };
+    sheets.push(sheet);
+    return sheet;
+  }
+
+  for (const part of sorted) {
+    const options = orientPartForSheet(part, sheetW, sheetH, allowTurnForFit);
+    if (!options.length) {
+      tooLarge.push(part);
+      continue;
+    }
+
+    let placed = false;
+
+    for (const sheet of sheets) {
+      for (const band of sheet.bands) {
+        for (const o of options) {
+          if (o.w <= band.w && band.usedY + o.h + (band.parts.length ? kerf : 0) <= sheetH) {
+            const x = band.x;
+            const y = band.usedY + (band.parts.length ? kerf : 0);
+            const p = { ...part, x, y, drawW: o.w, drawH: o.h, rotated: o.turned, bandIndex: band.index, bandDirection: "縦帯" };
+            band.parts.push(p);
+            band.usedY = y + o.h;
+            sheet.placed.push(p);
+            sheet.usedArea += part.area;
+            placed = true;
+            break;
+          }
+        }
+        if (placed) break;
+      }
+      if (placed) break;
+
+      const usedX = sheet.bands.reduce((sum, band) => sum + band.w + kerf, 0);
+      for (const o of options) {
+        if (usedX + o.w <= sheetW) {
+          const band = { index: sheet.bands.length + 1, x: usedX, y: 0, w: o.w, usedY: o.h, parts: [] };
+          const p = { ...part, x: usedX, y: 0, drawW: o.w, drawH: o.h, rotated: o.turned, bandIndex: band.index, bandDirection: "縦帯" };
+          band.parts.push(p);
+          sheet.bands.push(band);
+          sheet.placed.push(p);
+          sheet.usedArea += part.area;
+          placed = true;
+          break;
+        }
+      }
+      if (placed) break;
+    }
+
+    if (!placed) {
+      const sheet = newSheet();
+      const o = options[0];
+      const band = { index: 1, x: 0, y: 0, w: o.w, usedY: o.h, parts: [] };
+      const p = { ...part, x: 0, y: 0, drawW: o.w, drawH: o.h, rotated: o.turned, bandIndex: 1, bandDirection: "縦帯" };
+      band.parts.push(p);
+      sheet.bands.push(band);
+      sheet.placed.push(p);
+      sheet.usedArea += part.area;
+    }
+  }
+
+  return { sheets, tooLarge };
+}
+
+function scoreShearResult(result, sheetW, sheetH) {
+  const sheetCount = result.sheets.length;
+  const tooLargePenalty = result.tooLarge.length * 100000000000000;
+  const totalWaste = result.sheets.reduce((sum, s) => sum + (sheetW * sheetH - s.usedArea), 0);
+  return tooLargePenalty + sheetCount * 1000000000000 + totalWaste;
+}
+
+function optimizeShearPlateParts(parts, sheetW, sheetH, kerf, grainFixed, bandMode = "auto") {
+  // grainFixed は表示上の意味として残す。
+  // 実務上 1664×352 のような部材を4x8長手に合わせるため、シャーリングでは向き合わせを許可する。
+  const allowTurnForFit = true;
+
+  if (bandMode === "horizontal") {
+    return optimizeShearHorizontal(parts, sheetW, sheetH, kerf, allowTurnForFit);
+  }
+
+  if (bandMode === "vertical") {
+    return optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit);
+  }
+
+  const horizontal = optimizeShearHorizontal(parts, sheetW, sheetH, kerf, allowTurnForFit);
+  const vertical = optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit);
+
+  return scoreShearResult(vertical, sheetW, sheetH) < scoreShearResult(horizontal, sheetW, sheetH)
+    ? vertical
+    : horizontal;
 }
 
 function plateWeightKg(width, height, thickness, count = 1) {
@@ -591,7 +717,7 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
           <ol>
             {(sheet.bands || []).map((band) => (
               <li key={`band-${band.index}`}>
-                帯{band.index}：長手方向 {Math.round(band.y)}〜{Math.round(band.y + band.h)}mm で帯取り → 帯内で {band.parts.map((p) => `${p.w}×${p.h}`).join(" / ")} を切断
+                {sheet.bandDirection || "帯"} {band.index}：{sheet.bandDirection === "縦帯" ? `横方向 ${Math.round(band.x)}〜${Math.round(band.x + band.w)}mm で帯取り` : `長手方向 ${Math.round(band.y)}〜${Math.round(band.y + band.h)}mm で帯取り`} → 帯内で {band.parts.map((p) => `${p.w}×${p.h}${p.rotated ? "(向き合わせ)" : ""}`).join(" / ")} を切断
               </li>
             ))}
           </ol>
@@ -727,6 +853,7 @@ function PlateCalc() {
   const [kerf, setKerf] = useState(3);
   const [allowRotate, setAllowRotate] = useState(true);
   const [grainFixed, setGrainFixed] = useState(true);
+  const [bandMode, setBandMode] = useState("auto");
   const [partsText, setPartsText] = useState(loadLocal("platePartsText", SAMPLE_PLATE_PARTS));
 
   useEffect(() => {
@@ -737,9 +864,9 @@ function PlateCalc() {
   const effectiveRotate = mode === "laser" ? allowRotate : false;
   const result = useMemo(
     () => mode === "shear"
-      ? optimizeShearPlateParts(parts, Number(sheetW), Number(sheetH), Number(kerf), grainFixed)
+      ? optimizeShearPlateParts(parts, Number(sheetW), Number(sheetH), Number(kerf), grainFixed, bandMode)
       : optimizePlateParts(parts, Number(sheetW), Number(sheetH), Number(kerf), effectiveRotate),
-    [parts, sheetW, sheetH, kerf, effectiveRotate, mode, grainFixed]
+    [parts, sheetW, sheetH, kerf, effectiveRotate, mode, grainFixed, bandMode]
   );
 
   return (
@@ -783,10 +910,23 @@ function PlateCalc() {
         )}
 
         {mode === "shear" && (
-          <label className="check-row">
-            <input type="checkbox" checked={grainFixed} onChange={(e) => setGrainFixed(e.target.checked)} />
-            縞目固定・回転なし
-          </label>
+          <>
+            <label className="check-row">
+              <input type="checkbox" checked={grainFixed} onChange={(e) => setGrainFixed(e.target.checked)} />
+              縞目固定
+            </label>
+
+            <label>帯方向</label>
+            <select value={bandMode} onChange={(e) => setBandMode(e.target.value)}>
+              <option value="auto">自動：縦帯/横帯で良い方</option>
+              <option value="horizontal">横帯優先</option>
+              <option value="vertical">縦帯優先</option>
+            </select>
+
+            <p className="hint">
+              シャーリングverでは、1664×352のような部材も4×8の長手方向に合わせて入る向きを自動判定します。
+            </p>
+          </>
         )}
 
         <label>部材寸法</label>
@@ -805,7 +945,7 @@ function PlateCalc() {
         <div className="print-title">
           <h2>4×8板材取り合い指示書</h2>
           <p>
-            方法：{mode === "shear" ? "シャーリングver" : "レーザー切断ver"} / 母材：{sheetW}×{sheetH}mm / 板厚：{thickness}mm / 切断ロス：{kerf}mm / {mode === "shear" ? "縞目固定・回転なし" : (allowRotate ? "回転あり" : "回転なし")}
+            方法：{mode === "shear" ? "シャーリングver" : "レーザー切断ver"} / 母材：{sheetW}×{sheetH}mm / 板厚：{thickness}mm / 切断ロス：{kerf}mm / {mode === "shear" ? `帯方向:${bandMode === "auto" ? "自動" : bandMode === "vertical" ? "縦帯" : "横帯"}` : (allowRotate ? "回転あり" : "回転なし")}
           </p>
         </div>
 
@@ -953,7 +1093,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step3.3：スマホ画面で4×8母材図が横幅に収まるよう修正しています。</p>
+        <p>Step4：レーザー取り合い改善、シャーリング縦帯/横帯の自動選択を追加しています。</p>
       </header>
 
       <nav className="tabs no-print">
