@@ -4,9 +4,27 @@ import { Calculator, FileText, Plus, RotateCcw, Save, Trash2 } from "lucide-reac
 import "./styles.css";
 
 const DEFAULT_MATERIALS = [
-  { id: "m1", name: "40x40x4L", stockLength: 5500, kerf: 3 },
-  { id: "m2", name: "30x30x3L", stockLength: 5500, kerf: 3 },
-  { id: "m3", name: "FB 50x6", stockLength: 5500, kerf: 3 },
+  // アングル材 L
+  { id: "l30303", name: "30x30x3L", stockLength: 5500, kerf: 3 },
+  { id: "l40403", name: "40x40x3L", stockLength: 5500, kerf: 3 },
+  { id: "l40404", name: "40x40x4L", stockLength: 5500, kerf: 3 },
+  { id: "l50504", name: "50x50x4L", stockLength: 5500, kerf: 3 },
+  { id: "l50506", name: "50x50x6L", stockLength: 5500, kerf: 3 },
+  { id: "l65656", name: "65x65x6L", stockLength: 5500, kerf: 3 },
+  { id: "l75756", name: "75x75x6L", stockLength: 5500, kerf: 3 },
+
+  // フラットバー FB
+  { id: "fb324", name: "FB 32x4", stockLength: 5500, kerf: 3 },
+  { id: "fb386", name: "FB 38x6", stockLength: 5500, kerf: 3 },
+  { id: "fb506", name: "FB 50x6", stockLength: 5500, kerf: 3 },
+  { id: "fb656", name: "FB 65x6", stockLength: 5500, kerf: 3 },
+  { id: "fb756", name: "FB 75x6", stockLength: 5500, kerf: 3 },
+  { id: "fb1006", name: "FB 100x6", stockLength: 5500, kerf: 3 },
+
+  // よく使う6m材
+  { id: "l40404_6m", name: "40x40x4L 6m", stockLength: 6000, kerf: 3 },
+  { id: "l50506_6m", name: "50x50x6L 6m", stockLength: 6000, kerf: 3 },
+  { id: "fb506_6m", name: "FB 50x6 6m", stockLength: 6000, kerf: 3 },
 ];
 
 const SAMPLE_PARTS = `870x4
@@ -1599,7 +1617,7 @@ function BatchCalc() {
   );
 }
 
-function Materials({ materials, setMaterials }) {
+function Materials({ materials, setMaterials, resetMaterialsOnly }) {
   const [name, setName] = useState("");
   const [stockLength, setStockLength] = useState(5500);
   const [kerf, setKerf] = useState(3);
@@ -1618,7 +1636,10 @@ function Materials({ materials, setMaterials }) {
         <input type="number" value={stockLength} onChange={(e) => setStockLength(e.target.value)} />
         <input type="number" value={kerf} onChange={(e) => setKerf(e.target.value)} />
       </div>
-      <button className="no-print" type="button" onClick={add}><Plus size={18} />登録</button>
+      <div className="material-actions no-print">
+        <button type="button" onClick={add}><Plus size={18} />登録</button>
+        <button type="button" className="sub" onClick={resetMaterialsOnly}>初期材料にリセット</button>
+      </div>
 
       <div className="material-list">
         {materials.map((m) => (
@@ -1657,7 +1678,7 @@ function App() {
   const [materials, setMaterials] = useState(loadLocal("materials", DEFAULT_MATERIALS));
 
   function clearAllSavedData() {
-    if (!window.confirm("保存案件・保存材料・過去入力をすべて削除しますか？")) return;
+    if (!window.confirm("保存案件・保存材料・過去入力をすべて削除し、初期材料リストに戻しますか？")) return;
     localStorage.removeItem("singlePartsText");
     localStorage.removeItem("scrapsText");
     localStorage.removeItem("platePartsText");
@@ -1665,6 +1686,12 @@ function App() {
     localStorage.removeItem("plateProjects");
     localStorage.removeItem("materials");
     window.location.reload();
+  }
+
+  function resetMaterialsOnly() {
+    if (!window.confirm("材料登録だけを初期材料リストに戻しますか？")) return;
+    localStorage.removeItem("materials");
+    setMaterials(DEFAULT_MATERIALS);
   }
 
   useEffect(() => {
@@ -1675,7 +1702,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step9：URLを開いた時は空欄で開始。案件保存したものだけ呼び出せます。</p>
+        <p>Step10：初期材料リストを増やし、材料登録だけのリセットも追加しています。</p>
         <button type="button" className="sub clear-storage-btn" onClick={clearAllSavedData}>保存データを全削除</button>
       </header>
 
@@ -1690,7 +1717,7 @@ function App() {
       {tab === "single" && <SingleCalc materials={materials} setMaterials={setMaterials} />}
       {tab === "plate" && <PlateCalc />}
       {tab === "batch" && <BatchCalc />}
-      {tab === "materials" && <Materials materials={materials} setMaterials={setMaterials} />}
+      {tab === "materials" && <Materials materials={materials} setMaterials={setMaterials} resetMaterialsOnly={resetMaterialsOnly} />}
       {tab === "mobile" && <MobileSample />}
     </main>
   );

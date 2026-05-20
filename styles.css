@@ -1003,3 +1003,18 @@ textarea::placeholder {
     display: none !important;
   }
 }
+
+
+/* Step10 初期材料リセット */
+.material-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+  .material-actions {
+    grid-template-columns: 1fr;
+  }
+}
