@@ -980,3 +980,26 @@ textarea.small {
     font-size: 7pt !important;
   }
 }
+
+
+/* Step9 空欄開始版 */
+.clear-storage-btn {
+  margin-top: 10px;
+}
+
+.sample-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+textarea::placeholder {
+  color: #94a3b8;
+  white-space: pre-line;
+}
+
+@media print {
+  .clear-storage-btn,
+  .sample-btn {
+    display: none !important;
+  }
+}

@@ -1119,16 +1119,11 @@ function SingleCalc({ materials, setMaterials }) {
   const [stockLength, setStockLength] = useState(current?.stockLength || 5500);
   const [kerf, setKerf] = useState(current?.kerf || 3);
   const [kgPerMeter, setKgPerMeter] = useState(getBarKgPerMeterFromName(current?.name || "40x40x4L").toFixed(3));
-  const [partsText, setPartsText] = useState(loadLocal("singlePartsText", SAMPLE_PARTS));
-  const [scrapsText, setScrapsText] = useState(loadLocal("scrapsText", "1200\n900"));
+  const [partsText, setPartsText] = useState("");
+  const [scrapsText, setScrapsText] = useState("");
 
-  useEffect(() => {
-    localStorage.setItem("singlePartsText", JSON.stringify(partsText));
-  }, [partsText]);
-
-  useEffect(() => {
-    localStorage.setItem("scrapsText", JSON.stringify(scrapsText));
-  }, [scrapsText]);
+  // 入力中の寸法は自動保存しない。URLを開いた時は空欄で開始。
+  // 案件保存したデータのみ、保存案件から呼び出せる。
 
   useEffect(() => {
     localStorage.setItem("barProjects", JSON.stringify(savedBarProjects));
@@ -1254,7 +1249,8 @@ function SingleCalc({ materials, setMaterials }) {
         <p className="hint">40x40x4L などは概算自動入力。正確に出す場合は鋼材表のkg/mを入力してください。</p>
 
         <label>部材寸法</label>
-        <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} />
+        <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} placeholder="例：1664x352x3\n1064x552x3\n500x300x2" />
+        <button type="button" className="sub sample-btn" onClick={() => setPartsText(SAMPLE_PLATE_PARTS)}>入力例を入れる</button>
 
         <label>再利用する端材 mm</label>
         <textarea className="small" value={scrapsText} onChange={(e) => setScrapsText(e.target.value)} />
@@ -1263,7 +1259,7 @@ function SingleCalc({ materials, setMaterials }) {
           <button><Calculator size={18} /> 計算</button>
           <button type="button" className="sub" onClick={saveMaterial}><Save size={18} /> 材料保存</button>
           <button type="button" className="sub" onClick={() => window.print()}><FileText size={18} /> PDF/印刷</button>
-          <button type="button" className="sub" onClick={() => { setPartsText(SAMPLE_PARTS); setScrapsText("1200\n900"); }}><RotateCcw size={18} /> 初期化</button>
+          <button type="button" className="sub" onClick={() => { setPartsText(""); setScrapsText(""); }}><RotateCcw size={18} /> 空欄に戻す</button>
         </div>
       </section>
 
@@ -1357,11 +1353,10 @@ function PlateCalc() {
   const [allowRotate, setAllowRotate] = useState(true);
   const [grainFixed, setGrainFixed] = useState(true);
   const [bandMode, setBandMode] = useState("auto");
-  const [partsText, setPartsText] = useState(loadLocal("platePartsText", SAMPLE_PLATE_PARTS));
+  const [partsText, setPartsText] = useState("");
 
-  useEffect(() => {
-    localStorage.setItem("platePartsText", JSON.stringify(partsText));
-  }, [partsText]);
+  // 4×8板材の入力中寸法は自動保存しない。URLを開いた時は空欄で開始。
+  // 案件保存したデータのみ、保存案件から呼び出せる。
 
   useEffect(() => {
     localStorage.setItem("plateProjects", JSON.stringify(savedProjects));
@@ -1507,7 +1502,7 @@ function PlateCalc() {
         <div className="actions">
           <button><Calculator size={18} /> 計算</button>
           <button type="button" className="sub" onClick={() => window.print()}><FileText size={18} /> PDF/印刷</button>
-          <button type="button" className="sub" onClick={() => setPartsText(SAMPLE_PLATE_PARTS)}><RotateCcw size={18} /> 初期化</button>
+          <button type="button" className="sub" onClick={() => setPartsText("")}><RotateCcw size={18} /> 空欄に戻す</button>
         </div>
       </section>
 
@@ -1661,6 +1656,17 @@ function App() {
   const [tab, setTab] = useState("single");
   const [materials, setMaterials] = useState(loadLocal("materials", DEFAULT_MATERIALS));
 
+  function clearAllSavedData() {
+    if (!window.confirm("保存案件・保存材料・過去入力をすべて削除しますか？")) return;
+    localStorage.removeItem("singlePartsText");
+    localStorage.removeItem("scrapsText");
+    localStorage.removeItem("platePartsText");
+    localStorage.removeItem("barProjects");
+    localStorage.removeItem("plateProjects");
+    localStorage.removeItem("materials");
+    window.location.reload();
+  }
+
   useEffect(() => {
     localStorage.setItem("materials", JSON.stringify(materials));
   }, [materials]);
@@ -1669,7 +1675,8 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step8：定尺計算にも重量・案件保存・現場向け切断指示を追加しています。</p>
+        <p>Step9：URLを開いた時は空欄で開始。案件保存したものだけ呼び出せます。</p>
+        <button type="button" className="sub clear-storage-btn" onClick={clearAllSavedData}>保存データを全削除</button>
       </header>
 
       <nav className="tabs no-print">
