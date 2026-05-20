@@ -5,42 +5,41 @@ import "./styles.css";
 
 const DEFAULT_MATERIALS = [
   // SS400 等辺山形鋼 L：標準寸法ベース
-  { id: "ss400_l20203", name: "SS400 L 20x20x3", stockLength: 5500, kerf: 3, kgPerMeter: 0.885 },
-  { id: "ss400_l25253", name: "SS400 L 25x25x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.12 },
-  { id: "ss400_l30303", name: "SS400 L 30x30x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.36 },
-  { id: "ss400_l30305", name: "SS400 L 30x30x5", stockLength: 5500, kerf: 3, kgPerMeter: 2.16 },
-  { id: "ss400_l40403", name: "SS400 L 40x40x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.83 },
-  { id: "ss400_l40405", name: "SS400 L 40x40x5", stockLength: 5500, kerf: 3, kgPerMeter: 2.95 },
-  { id: "ss400_l50504", name: "SS400 L 50x50x4", stockLength: 5500, kerf: 3, kgPerMeter: 3.06 },
-  { id: "ss400_l50506", name: "SS400 L 50x50x6", stockLength: 5500, kerf: 3, kgPerMeter: 4.43 },
-  { id: "ss400_l50508", name: "SS400 L 50x50x8", stockLength: 5500, kerf: 3, kgPerMeter: 5.78 },
-  { id: "ss400_l65656", name: "SS400 L 65x65x6", stockLength: 5500, kerf: 3, kgPerMeter: 5.91 },
-  { id: "ss400_l65658", name: "SS400 L 65x65x8", stockLength: 5500, kerf: 3, kgPerMeter: 7.66 },
-  { id: "ss400_l75756", name: "SS400 L 75x75x6", stockLength: 5500, kerf: 3, kgPerMeter: 6.85 },
-  { id: "ss400_l75759", name: "SS400 L 75x75x9", stockLength: 5500, kerf: 3, kgPerMeter: 9.96 },
-  { id: "ss400_l90907", name: "SS400 L 90x90x7", stockLength: 5500, kerf: 3, kgPerMeter: 9.59 },
-  { id: "ss400_l909010", name: "SS400 L 90x90x10", stockLength: 5500, kerf: 3, kgPerMeter: 13.3 },
-  { id: "ss400_l1001007", name: "SS400 L 100x100x7", stockLength: 5500, kerf: 3, kgPerMeter: 10.7 },
-  { id: "ss400_l10010010", name: "SS400 L 100x100x10", stockLength: 5500, kerf: 3, kgPerMeter: 14.9 },
+  { id: "ss400_l20203", name: "SS400 L 20x20x3", stockLength: 5500, kerf: 3, kgPerMeter: 0.885 }, category: "SS400 山形鋼" },
+  { id: "ss400_l25253", name: "SS400 L 25x25x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.12 }, category: "SS400 山形鋼" },
+  { id: "ss400_l30303", name: "SS400 L 30x30x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.36 }, category: "SS400 山形鋼" },
+  { id: "ss400_l30305", name: "SS400 L 30x30x5", stockLength: 5500, kerf: 3, kgPerMeter: 2.16 }, category: "SS400 山形鋼" },
+  { id: "ss400_l40403", name: "SS400 L 40x40x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.83 }, category: "SS400 山形鋼" },
+  { id: "ss400_l40405", name: "SS400 L 40x40x5", stockLength: 5500, kerf: 3, kgPerMeter: 2.95 }, category: "SS400 山形鋼" },
+  { id: "ss400_l50504", name: "SS400 L 50x50x4", stockLength: 5500, kerf: 3, kgPerMeter: 3.06 }, category: "SS400 山形鋼" },
+  { id: "ss400_l50506", name: "SS400 L 50x50x6", stockLength: 5500, kerf: 3, kgPerMeter: 4.43 }, category: "SS400 山形鋼" },
+  { id: "ss400_l50508", name: "SS400 L 50x50x8", stockLength: 5500, kerf: 3, kgPerMeter: 5.78 }, category: "SS400 山形鋼" },
+  { id: "ss400_l65656", name: "SS400 L 65x65x6", stockLength: 5500, kerf: 3, kgPerMeter: 5.91 }, category: "SS400 山形鋼" },
+  { id: "ss400_l65658", name: "SS400 L 65x65x8", stockLength: 5500, kerf: 3, kgPerMeter: 7.66 }, category: "SS400 山形鋼" },
+  { id: "ss400_l75756", name: "SS400 L 75x75x6", stockLength: 5500, kerf: 3, kgPerMeter: 6.85 }, category: "SS400 山形鋼" },
+  { id: "ss400_l75759", name: "SS400 L 75x75x9", stockLength: 5500, kerf: 3, kgPerMeter: 9.96 }, category: "SS400 山形鋼" },
+  { id: "ss400_l90907", name: "SS400 L 90x90x7", stockLength: 5500, kerf: 3, kgPerMeter: 9.59 }, category: "SS400 山形鋼" },
+  { id: "ss400_l909010", name: "SS400 L 90x90x10", stockLength: 5500, kerf: 3, kgPerMeter: 13.3 }, category: "SS400 山形鋼" },
+  { id: "ss400_l1001007", name: "SS400 L 100x100x7", stockLength: 5500, kerf: 3, kgPerMeter: 10.7 }, category: "SS400 山形鋼" },
+  { id: "ss400_l10010010", name: "SS400 L 100x100x10", stockLength: 5500, kerf: 3, kgPerMeter: 14.9 }, category: "SS400 山形鋼" },
 
   // SS400 平鋼 FB：一般流通の標準寸法ベース
-  { id: "ss400_fb3245", name: "SS400 FB 32x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.13 },
-  { id: "ss400_fb3845", name: "SS400 FB 38x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.34 },
-  { id: "ss400_fb5045", name: "SS400 FB 50x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.77 },
-  { id: "ss400_fb506", name: "SS400 FB 50x6", stockLength: 5500, kerf: 3, kgPerMeter: 2.36 },
-  { id: "ss400_fb656", name: "SS400 FB 65x6", stockLength: 5500, kerf: 3, kgPerMeter: 3.06 },
-  { id: "ss400_fb756", name: "SS400 FB 75x6", stockLength: 5500, kerf: 3, kgPerMeter: 3.53 },
-  { id: "ss400_fb1006", name: "SS400 FB 100x6", stockLength: 5500, kerf: 3, kgPerMeter: 4.71 },
-  { id: "ss400_fb1009", name: "SS400 FB 100x9", stockLength: 5500, kerf: 3, kgPerMeter: 7.07 },
+  { id: "ss400_fb3245", name: "SS400 FB 32x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.13 }, category: "SS400 FB" },
+  { id: "ss400_fb3845", name: "SS400 FB 38x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.34 }, category: "SS400 FB" },
+  { id: "ss400_fb5045", name: "SS400 FB 50x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.77 }, category: "SS400 FB" },
+  { id: "ss400_fb506", name: "SS400 FB 50x6", stockLength: 5500, kerf: 3, kgPerMeter: 2.36 }, category: "SS400 FB" },
+  { id: "ss400_fb656", name: "SS400 FB 65x6", stockLength: 5500, kerf: 3, kgPerMeter: 3.06 }, category: "SS400 FB" },
+  { id: "ss400_fb756", name: "SS400 FB 75x6", stockLength: 5500, kerf: 3, kgPerMeter: 3.53 }, category: "SS400 FB" },
+  { id: "ss400_fb1006", name: "SS400 FB 100x6", stockLength: 5500, kerf: 3, kgPerMeter: 4.71 }, category: "SS400 FB" },
+  { id: "ss400_fb1009", name: "SS400 FB 100x9", stockLength: 5500, kerf: 3, kgPerMeter: 7.07 }, category: "SS400 FB" },
 
   // 6m材として使う場合
-  { id: "ss400_l40405_6m", name: "SS400 L 40x40x5 6m", stockLength: 6000, kerf: 3, kgPerMeter: 2.95 },
-  { id: "ss400_l50506_6m", name: "SS400 L 50x50x6 6m", stockLength: 6000, kerf: 3, kgPerMeter: 4.43 },
-  { id: "ss400_fb506_6m", name: "SS400 FB 50x6 6m", stockLength: 6000, kerf: 3, kgPerMeter: 2.36 },
-];
+  { id: "ss400_l40405_6m", name: "SS400 L 40x40x5 6m", stockLength: 6000, kerf: 3, kgPerMeter: 2.95 }, category: "SS400 山形鋼" },
+  { id: "ss400_l50506_6m", name: "SS400 L 50x50x6 6m", stockLength: 6000, kerf: 3, kgPerMeter: 4.43 }, category: "SS400 山形鋼" },
+  { id: "ss400_fb506_6m", name: "SS400 FB 50x6 6m", stockLength: 6000, kerf: 3, kgPerMeter: 2.36 }, category: "SS400 FB" },];
 
 
-const MATERIAL_PRESET_VERSION = "ss400-standard-v1";
+const MATERIAL_PRESET_VERSION = "ss400-standard-categorized-v2";
 
 
 const SAMPLE_PARTS = `870x4
@@ -1224,7 +1223,14 @@ function SingleCalc({ materials, setMaterials }) {
   const totalScrapWeight = result.bars.reduce((s, b) => s + getBarWeight(b.scrap, Number(kgPerMeter)), 0);
 
   function saveMaterial() {
-    const item = { id: uid(), name: materialName, stockLength: Number(stockLength), kerf: Number(kerf) };
+    const item = {
+      id: uid(),
+      name: materialName,
+      stockLength: Number(stockLength),
+      kerf: Number(kerf),
+      kgPerMeter: Number(kgPerMeter) || getBarKgPerMeterFromName(materialName),
+      category: materialName.includes("FB") ? "SS400 FB" : materialName.includes("L") ? "SS400 山形鋼" : "その他",
+    };
     setMaterials((prev) => [...prev, item]);
     setMaterialId(item.id);
   }
@@ -1291,7 +1297,15 @@ function SingleCalc({ materials, setMaterials }) {
 
         <label>登録材料から選択</label>
         <select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
-          {materials.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {["SS400 山形鋼", "SS400 FB", "その他"].map((category) => {
+            const items = materials.filter((m) => (m.category || "その他") === category);
+            if (items.length === 0) return null;
+            return (
+              <optgroup key={category} label={category}>
+                {items.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </optgroup>
+            );
+          })}
         </select>
 
         <label>材料名</label>
@@ -1671,38 +1685,97 @@ function Materials({ materials, setMaterials, resetMaterialsOnly }) {
   const [name, setName] = useState("");
   const [stockLength, setStockLength] = useState(5500);
   const [kerf, setKerf] = useState(3);
+  const [category, setCategory] = useState("SS400 山形鋼");
+  const [kgPerMeterInput, setKgPerMeterInput] = useState("");
 
   function add() {
     if (!name.trim()) return;
-    setMaterials((prev) => [...prev, { id: uid(), name, stockLength: Number(stockLength), kerf: Number(kerf) }]);
+
+    const autoKg = getBarKgPerMeterFromName(name);
+    setMaterials((prev) => [...prev, {
+      id: uid(),
+      name,
+      stockLength: Number(stockLength),
+      kerf: Number(kerf),
+      category,
+      kgPerMeter: Number(kgPerMeterInput) || autoKg || 0,
+    }]);
+
     setName("");
+    setKgPerMeterInput("");
   }
+
+  const categories = ["SS400 山形鋼", "SS400 FB", "その他"];
 
   return (
     <section className="panel wide">
       <h2>材料登録</h2>
-      <div className="three no-print">
-        <input placeholder="材料名 例：50x50x6L" value={name} onChange={(e) => setName(e.target.value)} />
-        <input type="number" value={stockLength} onChange={(e) => setStockLength(e.target.value)} />
-        <input type="number" value={kerf} onChange={(e) => setKerf(e.target.value)} />
+
+      <div className="material-register no-print">
+        <div>
+          <label>カテゴリー</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="SS400 山形鋼">SS400 山形鋼</option>
+            <option value="SS400 FB">SS400 FB</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+
+        <div>
+          <label>材料名</label>
+          <input placeholder="例：SS400 L 40x40x5" value={name} onChange={(e) => {
+            setName(e.target.value);
+            const auto = getBarKgPerMeterFromName(e.target.value);
+            if (auto) setKgPerMeterInput(auto.toFixed(3));
+          }} />
+        </div>
+
+        <div>
+          <label>定尺 mm</label>
+          <input type="number" value={stockLength} onChange={(e) => setStockLength(e.target.value)} />
+        </div>
+
+        <div>
+          <label>ロス mm</label>
+          <input type="number" value={kerf} onChange={(e) => setKerf(e.target.value)} />
+        </div>
+
+        <div>
+          <label>kg/m</label>
+          <input type="number" step="0.001" value={kgPerMeterInput} onChange={(e) => setKgPerMeterInput(e.target.value)} placeholder="自動または手入力" />
+        </div>
       </div>
+
       <div className="material-actions no-print">
         <button type="button" onClick={add}><Plus size={18} />登録</button>
         <button type="button" className="sub" onClick={resetMaterialsOnly}>初期材料にリセット</button>
       </div>
 
-      <div className="material-list">
-        {materials.map((m) => (
-          <article className="material" key={m.id}>
-            <strong>{m.name}</strong>
-            <span>定尺 {m.stockLength}mm / ロス {m.kerf}mm</span>
-            <button className="danger no-print" type="button" onClick={() => setMaterials((prev) => prev.filter((x) => x.id !== m.id))}><Trash2 size={16} /></button>
-          </article>
-        ))}
+      <div className="material-category-list">
+        {categories.map((cat) => {
+          const items = materials.filter((m) => (m.category || "その他") === cat);
+          if (items.length === 0) return null;
+
+          return (
+            <div className="material-category" key={cat}>
+              <h3>{cat}</h3>
+              <div className="material-list">
+                {items.map((m) => (
+                  <article className="material" key={m.id}>
+                    <strong>{m.name}</strong>
+                    <span>定尺 {m.stockLength}mm / ロス {m.kerf}mm / {m.kgPerMeter ? `${m.kgPerMeter}kg/m` : "重量未設定"}</span>
+                    <button className="danger no-print" type="button" onClick={() => setMaterials((prev) => prev.filter((x) => x.id !== m.id))}><Trash2 size={16} /></button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
 }
+
 
 function MobileSample() {
   const { parts } = parseParts(SAMPLE_PARTS);
@@ -1762,7 +1835,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step12：起動時にSS400規格材料へ自動リセットされる版です。</p>
+        <p>Step13：材料登録をSS400山形鋼・SS400 FBにカテゴリー分けしています。</p>
         <button type="button" className="sub clear-storage-btn" onClick={clearAllSavedData}>保存データを全削除</button>
       </header>
 
