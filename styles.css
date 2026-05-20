@@ -665,3 +665,35 @@ textarea.small {
     display: none !important;
   }
 }
+
+
+/* Step3.1 印刷時の余計な2ページ目防止 */
+@media print {
+  .sheet-card .cut-line,
+  .sheet-card .shear-steps {
+    display: none !important;
+  }
+
+  .sheet-card {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: 190mm !important;
+    overflow: hidden !important;
+  }
+
+  .print-sheet {
+    width: 100mm !important;
+    height: 188mm !important;
+    margin: 0 auto !important;
+  }
+
+  .print-title {
+    margin-bottom: 1.5mm !important;
+  }
+
+  .sheet-card .bar-head,
+  .sheet-card .bar-meta {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+}
