@@ -336,6 +336,251 @@ function placePart(sheet, part, allowRotate, kerf) {
   return true;
 }
 
+
+function rectIntersects(a, b) {
+  return !(b.x >= a.x + a.w || b.x + b.w <= a.x || b.y >= a.y + a.h || b.y + b.h <= a.y);
+}
+
+function splitFreeRect(free, used) {
+  if (!rectIntersects(free, used)) return [free];
+
+  const result = [];
+
+  // 上
+  if (used.y > free.y) {
+    result.push({
+      x: free.x,
+      y: free.y,
+      w: free.w,
+      h: used.y - free.y,
+    });
+  }
+
+  // 下
+  if (used.y + used.h < free.y + free.h) {
+    result.push({
+      x: free.x,
+      y: used.y + used.h,
+      w: free.w,
+      h: free.y + free.h - (used.y + used.h),
+    });
+  }
+
+  // 左
+  if (used.x > free.x) {
+    result.push({
+      x: free.x,
+      y: free.y,
+      w: used.x - free.x,
+      h: free.h,
+    });
+  }
+
+  // 右
+  if (used.x + used.w < free.x + free.w) {
+    result.push({
+      x: used.x + used.w,
+      y: free.y,
+      w: free.x + free.w - (used.x + used.w),
+      h: free.h,
+    });
+  }
+
+  return result.filter((r) => r.w > 0 && r.h > 0);
+}
+
+function pruneFreeRectsStrong(freeRects) {
+  const clean = freeRects.filter((r) => r.w > 0 && r.h > 0);
+  const result = [];
+
+  for (let i = 0; i < clean.length; i++) {
+    const a = clean[i];
+    let contained = false;
+
+    for (let j = 0; j < clean.length; j++) {
+      if (i === j) continue;
+      const b = clean[j];
+
+      if (
+        a.x >= b.x &&
+        a.y >= b.y &&
+        a.x + a.w <= b.x + b.w &&
+        a.y + a.h <= b.y + b.h
+      ) {
+        contained = true;
+        break;
+      }
+    }
+
+    if (!contained) result.push(a);
+  }
+
+  return result;
+}
+
+function maxRectsPlacePart(sheet, part, sheetW, sheetH, kerf, allowRotate, strategy = "bestArea") {
+  let best = null;
+
+  sheet.freeRects.forEach((free, freeIndex) => {
+    const options = [
+      { w: part.w, h: part.h, rotated: false },
+    ];
+
+    if (allowRotate && part.w !== part.h) {
+      options.push({ w: part.h, h: part.w, rotated: true });
+    }
+
+    options.forEach((o) => {
+      const needW = o.w + kerf;
+      const needH = o.h + kerf;
+
+      if (needW <= free.w && needH <= free.h) {
+        const leftoverHoriz = free.w - needW;
+        const leftoverVert = free.h - needH;
+        const shortSide = Math.min(leftoverHoriz, leftoverVert);
+        const longSide = Math.max(leftoverHoriz, leftoverVert);
+        const areaWaste = free.w * free.h - needW * needH;
+
+        let score;
+        if (strategy === "shortSide") {
+          score = shortSide * 100000000 + areaWaste;
+        } else if (strategy === "longSide") {
+          score = longSide * 100000000 + areaWaste;
+        } else {
+          score = areaWaste * 100000000 + shortSide;
+        }
+
+        if (!best || score < best.score) {
+          best = { free, freeIndex, o, needW, needH, score };
+        }
+      }
+    });
+  });
+
+  if (!best) return false;
+
+  const placed = {
+    ...part,
+    x: best.free.x,
+    y: best.free.y,
+    drawW: best.o.w,
+    drawH: best.o.h,
+    rotated: best.o.rotated,
+    bandDirection: "端材詰め",
+  };
+
+  sheet.placed.push(placed);
+  sheet.usedArea += part.area;
+
+  const usedRect = {
+    x: placed.x,
+    y: placed.y,
+    w: best.needW,
+    h: best.needH,
+  };
+
+  let newFree = [];
+  for (const free of sheet.freeRects) {
+    newFree.push(...splitFreeRect(free, usedRect));
+  }
+
+  sheet.freeRects = pruneFreeRectsStrong(newFree);
+  return true;
+}
+
+function optimizeMaxRects(parts, sheetW, sheetH, kerf, allowRotate, sortMode = "area", strategy = "bestArea") {
+  const sorted = [...parts].sort((a, b) => {
+    if (sortMode === "longSide") {
+      const al = Math.max(a.w, a.h);
+      const bl = Math.max(b.w, b.h);
+      if (bl !== al) return bl - al;
+      return b.area - a.area;
+    }
+
+    if (sortMode === "shortSide") {
+      const as = Math.min(a.w, a.h);
+      const bs = Math.min(b.w, b.h);
+      if (bs !== as) return bs - as;
+      return b.area - a.area;
+    }
+
+    if (sortMode === "height") {
+      if (b.h !== a.h) return b.h - a.h;
+      return b.area - a.area;
+    }
+
+    if (sortMode === "width") {
+      if (b.w !== a.w) return b.w - a.w;
+      return b.area - a.area;
+    }
+
+    if (sortMode === "areaAsc") {
+      return a.area - b.area;
+    }
+
+    return b.area - a.area;
+  });
+
+  const sheets = [];
+  const tooLarge = [];
+
+  for (const part of sorted) {
+    const normal = part.w + kerf <= sheetW && part.h + kerf <= sheetH;
+    const rotated = allowRotate && part.h + kerf <= sheetW && part.w + kerf <= sheetH;
+
+    if (!normal && !rotated) {
+      tooLarge.push(part);
+      continue;
+    }
+
+    let placed = false;
+
+    // 重要：新しい母材を作る前に、既存母材すべての空き矩形を確認する
+    for (const sheet of sheets) {
+      if (maxRectsPlacePart(sheet, part, sheetW, sheetH, kerf, allowRotate, strategy)) {
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      const sheet = {
+        id: `sheet-${sheets.length + 1}`,
+        index: sheets.length + 1,
+        placed: [],
+        usedArea: 0,
+        freeRects: [{ x: 0, y: 0, w: sheetW, h: sheetH }],
+        bands: [],
+        bandDirection: "端材詰め",
+      };
+
+      maxRectsPlacePart(sheet, part, sheetW, sheetH, kerf, allowRotate, strategy);
+      sheets.push(sheet);
+    }
+  }
+
+  return {
+    sheets,
+    tooLarge,
+    fillMethod: "MaxRects端材詰め",
+  };
+}
+
+function optimizeMaxRectsBest(parts, sheetW, sheetH, kerf, allowRotate) {
+  const sortModes = ["area", "longSide", "shortSide", "height", "width", "areaAsc"];
+  const strategies = ["bestArea", "shortSide", "longSide"];
+  const candidates = [];
+
+  sortModes.forEach((sortMode) => {
+    strategies.forEach((strategy) => {
+      candidates.push(optimizeMaxRects(parts, sheetW, sheetH, kerf, allowRotate, sortMode, strategy));
+    });
+  });
+
+  candidates.sort((a, b) => scoreShearResult(a, sheetW, sheetH) - scoreShearResult(b, sheetW, sheetH));
+  return candidates[0] || { sheets: [], tooLarge: [] };
+}
+
 function optimizePlatePartsOnce(parts, sheetW, sheetH, kerf, allowRotate, sortMode) {
   const sorted = [...parts].sort((a, b) => {
     if (sortMode === "height") {
@@ -400,12 +645,8 @@ function scorePlateResult(result, sheetW, sheetH) {
 }
 
 function optimizePlateParts(parts, sheetW, sheetH, kerf, allowRotate) {
-  // レーザー用：複数の並び順で試して一番良い結果を採用
-  const sortModes = ["area", "height", "width", "areaAsc"];
-  const candidates = sortModes.map((mode) => optimizePlatePartsOnce(parts, sheetW, sheetH, kerf, allowRotate, mode));
-
-  candidates.sort((a, b) => scorePlateResult(a, sheetW, sheetH) - scorePlateResult(b, sheetW, sheetH));
-  return candidates[0] || { sheets: [], tooLarge: [] };
+  // Step6：レーザー用もMaxRectsで複数候補を比較し、詰めを改善
+  return optimizeMaxRectsBest(parts, sheetW, sheetH, kerf, allowRotate);
 }
 
 function orientPartForSheet(part, sheetW, sheetH, allowTurnForFit) {
@@ -590,42 +831,37 @@ function optimizeShearVertical(parts, sheetW, sheetH, kerf, allowTurnForFit) {
 
 
 function optimizeShearScrapFill(parts, sheetW, sheetH, kerf) {
-  // シャーリング端材詰め改善：
-  // 大物を入れた後、既存母材の空き矩形へ小物を優先的に詰める。
-  // 完全なシャーリング順ではなく、母材枚数を減らすための補助候補。
-  const sortModes = ["area", "height", "width"];
-  const candidates = sortModes.map((mode) => optimizePlatePartsOnce(parts, sheetW, sheetH, kerf, true, mode));
+  // Step6：既存母材の空き矩形を強く見て、小物を端材へ詰める。
+  // シャーリングverの端材詰め候補として使う。
+  const result = optimizeMaxRectsBest(parts, sheetW, sheetH, kerf, true);
 
-  const converted = candidates.map((candidate) => {
-    const sheets = candidate.sheets.map((sheet, sheetIndex) => ({
+  return {
+    ...result,
+    sheets: result.sheets.map((sheet, i) => ({
       ...sheet,
-      index: sheetIndex + 1,
+      index: i + 1,
       bandDirection: "端材詰め",
-      bands: [],
       placed: sheet.placed.map((p) => ({
         ...p,
         bandDirection: "端材詰め",
       })),
-    }));
-
-    return {
-      sheets,
-      tooLarge: candidate.tooLarge,
-      fillMethod: "端材詰め",
-    };
-  });
-
-  converted.sort((a, b) => scoreShearResult(a, sheetW, sheetH) - scoreShearResult(b, sheetW, sheetH));
-  return converted[0] || { sheets: [], tooLarge: [] };
+    })),
+    fillMethod: "MaxRects端材詰め",
+  };
 }
 
 function improveShearByMovingSmallParts(baseResult, parts, sheetW, sheetH, kerf) {
-  // まず端材詰め候補を作り、母材枚数が減る・または端材が減るなら採用
   const fillResult = optimizeShearScrapFill(parts, sheetW, sheetH, kerf);
+
   const baseScore = scoreShearResult(baseResult, sheetW, sheetH);
   const fillScore = scoreShearResult(fillResult, sheetW, sheetH);
 
-  if (fillScore < baseScore) {
+  const fillSheets = fillResult.sheets.length;
+  const baseSheets = baseResult.sheets.length;
+
+  // 母材枚数が同じでも、端材詰め配置の方が小物が前母材に寄るケースがあるため、
+  // スコアが同等以下なら端材詰めを採用する。
+  if (fillSheets <= baseSheets && fillScore <= baseScore + 1000000) {
     return {
       ...fillResult,
       improvedByScrapFill: true,
@@ -773,7 +1009,7 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode }) {
           <strong>シャーリング順（簡易）</strong>
           {sheet.bandDirection === "端材詰め" ? (
             <p>
-              端材詰め配置：大物を先に配置し、500×300などの小物を既存母材の空きスペースへ詰めています。切断順は実機に合わせて確認してください。
+              端材詰め配置：既存母材の空き矩形を確認し、500×300などの小物を前の母材へ詰めています。切断順は実機に合わせて確認してください。
             </p>
           ) : (
             <ol>
@@ -1016,7 +1252,7 @@ function PlateCalc() {
 
         {mode === "shear" && result.improvedByScrapFill && (
           <div className="improve-note">
-            端材詰め改善を適用：小物部材を既存母材の空きスペースへ再配置しています。
+            端材詰め改善を適用：既存母材の空き矩形を全確認し、小物部材を前の母材へ再配置しています。
           </div>
         )}
 
@@ -1162,7 +1398,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step5：シャーリング端材詰め改善で、小物を既存母材の空きへ寄せます。</p>
+        <p>Step6：既存母材の空き矩形を全確認し、500×300などの小物を端材へ詰めます。</p>
       </header>
 
       <nav className="tabs no-print">
