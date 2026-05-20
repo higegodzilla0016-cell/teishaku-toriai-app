@@ -4,27 +4,39 @@ import { Calculator, FileText, Plus, RotateCcw, Save, Trash2 } from "lucide-reac
 import "./styles.css";
 
 const DEFAULT_MATERIALS = [
-  // アングル材 L
-  { id: "l30303", name: "30x30x3L", stockLength: 5500, kerf: 3 },
-  { id: "l40403", name: "40x40x3L", stockLength: 5500, kerf: 3 },
-  { id: "l40404", name: "40x40x4L", stockLength: 5500, kerf: 3 },
-  { id: "l50504", name: "50x50x4L", stockLength: 5500, kerf: 3 },
-  { id: "l50506", name: "50x50x6L", stockLength: 5500, kerf: 3 },
-  { id: "l65656", name: "65x65x6L", stockLength: 5500, kerf: 3 },
-  { id: "l75756", name: "75x75x6L", stockLength: 5500, kerf: 3 },
+  // SS400 等辺山形鋼 L：標準寸法ベース
+  { id: "ss400_l20203", name: "SS400 L 20x20x3", stockLength: 5500, kerf: 3, kgPerMeter: 0.885 },
+  { id: "ss400_l25253", name: "SS400 L 25x25x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.12 },
+  { id: "ss400_l30303", name: "SS400 L 30x30x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.36 },
+  { id: "ss400_l30305", name: "SS400 L 30x30x5", stockLength: 5500, kerf: 3, kgPerMeter: 2.16 },
+  { id: "ss400_l40403", name: "SS400 L 40x40x3", stockLength: 5500, kerf: 3, kgPerMeter: 1.83 },
+  { id: "ss400_l40405", name: "SS400 L 40x40x5", stockLength: 5500, kerf: 3, kgPerMeter: 2.95 },
+  { id: "ss400_l50504", name: "SS400 L 50x50x4", stockLength: 5500, kerf: 3, kgPerMeter: 3.06 },
+  { id: "ss400_l50506", name: "SS400 L 50x50x6", stockLength: 5500, kerf: 3, kgPerMeter: 4.43 },
+  { id: "ss400_l50508", name: "SS400 L 50x50x8", stockLength: 5500, kerf: 3, kgPerMeter: 5.78 },
+  { id: "ss400_l65656", name: "SS400 L 65x65x6", stockLength: 5500, kerf: 3, kgPerMeter: 5.91 },
+  { id: "ss400_l65658", name: "SS400 L 65x65x8", stockLength: 5500, kerf: 3, kgPerMeter: 7.66 },
+  { id: "ss400_l75756", name: "SS400 L 75x75x6", stockLength: 5500, kerf: 3, kgPerMeter: 6.85 },
+  { id: "ss400_l75759", name: "SS400 L 75x75x9", stockLength: 5500, kerf: 3, kgPerMeter: 9.96 },
+  { id: "ss400_l90907", name: "SS400 L 90x90x7", stockLength: 5500, kerf: 3, kgPerMeter: 9.59 },
+  { id: "ss400_l909010", name: "SS400 L 90x90x10", stockLength: 5500, kerf: 3, kgPerMeter: 13.3 },
+  { id: "ss400_l1001007", name: "SS400 L 100x100x7", stockLength: 5500, kerf: 3, kgPerMeter: 10.7 },
+  { id: "ss400_l10010010", name: "SS400 L 100x100x10", stockLength: 5500, kerf: 3, kgPerMeter: 14.9 },
 
-  // フラットバー FB
-  { id: "fb324", name: "FB 32x4", stockLength: 5500, kerf: 3 },
-  { id: "fb386", name: "FB 38x6", stockLength: 5500, kerf: 3 },
-  { id: "fb506", name: "FB 50x6", stockLength: 5500, kerf: 3 },
-  { id: "fb656", name: "FB 65x6", stockLength: 5500, kerf: 3 },
-  { id: "fb756", name: "FB 75x6", stockLength: 5500, kerf: 3 },
-  { id: "fb1006", name: "FB 100x6", stockLength: 5500, kerf: 3 },
+  // SS400 平鋼 FB：一般流通の標準寸法ベース
+  { id: "ss400_fb3245", name: "SS400 FB 32x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.13 },
+  { id: "ss400_fb3845", name: "SS400 FB 38x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.34 },
+  { id: "ss400_fb5045", name: "SS400 FB 50x4.5", stockLength: 5500, kerf: 3, kgPerMeter: 1.77 },
+  { id: "ss400_fb506", name: "SS400 FB 50x6", stockLength: 5500, kerf: 3, kgPerMeter: 2.36 },
+  { id: "ss400_fb656", name: "SS400 FB 65x6", stockLength: 5500, kerf: 3, kgPerMeter: 3.06 },
+  { id: "ss400_fb756", name: "SS400 FB 75x6", stockLength: 5500, kerf: 3, kgPerMeter: 3.53 },
+  { id: "ss400_fb1006", name: "SS400 FB 100x6", stockLength: 5500, kerf: 3, kgPerMeter: 4.71 },
+  { id: "ss400_fb1009", name: "SS400 FB 100x9", stockLength: 5500, kerf: 3, kgPerMeter: 7.07 },
 
-  // よく使う6m材
-  { id: "l40404_6m", name: "40x40x4L 6m", stockLength: 6000, kerf: 3 },
-  { id: "l50506_6m", name: "50x50x6L 6m", stockLength: 6000, kerf: 3 },
-  { id: "fb506_6m", name: "FB 50x6 6m", stockLength: 6000, kerf: 3 },
+  // 6m材として使う場合
+  { id: "ss400_l40405_6m", name: "SS400 L 40x40x5 6m", stockLength: 6000, kerf: 3, kgPerMeter: 2.95 },
+  { id: "ss400_l50506_6m", name: "SS400 L 50x50x6 6m", stockLength: 6000, kerf: 3, kgPerMeter: 4.43 },
+  { id: "ss400_fb506_6m", name: "SS400 FB 50x6 6m", stockLength: 6000, kerf: 3, kgPerMeter: 2.36 },
 ];
 
 const SAMPLE_PARTS = `870x4
@@ -1088,17 +1100,51 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode, thickness }) {
 
 
 function getBarKgPerMeterFromName(name) {
-  // 代表的なアングル材の概算重量。必要ならあとで材料登録へ重量入力欄を追加可能。
-  const normalized = String(name || "").replace(/[×＊*]/g, "x").replace(/[Ｘｘ]/g, "x").toLowerCase();
+  const normalized = String(name || "")
+    .replace(/[×＊*]/g, "x")
+    .replace(/[Ｘｘ]/g, "x")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 
-  const angle = normalized.match(/(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/);
+  const exact = {
+    "ss400 l 20x20x3": 0.885,
+    "ss400 l 25x25x3": 1.12,
+    "ss400 l 30x30x3": 1.36,
+    "ss400 l 30x30x5": 2.16,
+    "ss400 l 40x40x3": 1.83,
+    "ss400 l 40x40x5": 2.95,
+    "ss400 l 50x50x4": 3.06,
+    "ss400 l 50x50x6": 4.43,
+    "ss400 l 50x50x8": 5.78,
+    "ss400 l 65x65x6": 5.91,
+    "ss400 l 65x65x8": 7.66,
+    "ss400 l 75x75x6": 6.85,
+    "ss400 l 75x75x9": 9.96,
+    "ss400 l 90x90x7": 9.59,
+    "ss400 l 90x90x10": 13.3,
+    "ss400 l 100x100x7": 10.7,
+    "ss400 l 100x100x10": 14.9,
+    "ss400 fb 32x4.5": 1.13,
+    "ss400 fb 38x4.5": 1.34,
+    "ss400 fb 50x4.5": 1.77,
+    "ss400 fb 50x6": 2.36,
+    "ss400 fb 65x6": 3.06,
+    "ss400 fb 75x6": 3.53,
+    "ss400 fb 100x6": 4.71,
+    "ss400 fb 100x9": 7.07,
+  };
+
+  const without6m = normalized.replace(/\s*6m$/, "");
+  if (exact[without6m]) return exact[without6m];
+
+  const angle = normalized.match(/(?:ss400\s*)?l?\s*(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/);
   if (angle) {
     const a = Number(angle[1]);
     const b = Number(angle[2]);
     const t = Number(angle[3]);
-    // アングル断面積概算：a*t + b*t - t*t mm2
     const area = a * t + b * t - t * t;
-    return area * 0.00785; // kg/m
+    return area * 0.00785;
   }
 
   const fb = normalized.match(/fb\s*(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/);
@@ -1136,7 +1182,7 @@ function SingleCalc({ materials, setMaterials }) {
   const [materialName, setMaterialName] = useState(current?.name || "40x40x4L");
   const [stockLength, setStockLength] = useState(current?.stockLength || 5500);
   const [kerf, setKerf] = useState(current?.kerf || 3);
-  const [kgPerMeter, setKgPerMeter] = useState(getBarKgPerMeterFromName(current?.name || "40x40x4L").toFixed(3));
+  const [kgPerMeter, setKgPerMeter] = useState((current?.kgPerMeter || getBarKgPerMeterFromName(current?.name || "SS400 L 40x40x5")).toFixed(3));
   const [partsText, setPartsText] = useState("");
   const [scrapsText, setScrapsText] = useState("");
 
@@ -1152,7 +1198,7 @@ function SingleCalc({ materials, setMaterials }) {
       setMaterialName(current.name);
       setStockLength(current.stockLength);
       setKerf(current.kerf);
-      setKgPerMeter(getBarKgPerMeterFromName(current.name).toFixed(3));
+      setKgPerMeter((current.kgPerMeter || getBarKgPerMeterFromName(current.name)).toFixed(3));
     }
   }, [materialId]);
 
@@ -1702,7 +1748,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step10：初期材料リストを増やし、材料登録だけのリセットも追加しています。</p>
+        <p>Step11：初期材料をSS400の規格寸法ベースに整理しています。</p>
         <button type="button" className="sub clear-storage-btn" onClick={clearAllSavedData}>保存データを全削除</button>
       </header>
 
