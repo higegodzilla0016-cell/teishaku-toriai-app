@@ -1068,13 +1068,57 @@ function PlateDrawing({ sheet, sheetW, sheetH, mode, thickness }) {
    画面
 ============================== */
 
+
+function getBarKgPerMeterFromName(name) {
+  // 代表的なアングル材の概算重量。必要ならあとで材料登録へ重量入力欄を追加可能。
+  const normalized = String(name || "").replace(/[×＊*]/g, "x").replace(/[Ｘｘ]/g, "x").toLowerCase();
+
+  const angle = normalized.match(/(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/);
+  if (angle) {
+    const a = Number(angle[1]);
+    const b = Number(angle[2]);
+    const t = Number(angle[3]);
+    // アングル断面積概算：a*t + b*t - t*t mm2
+    const area = a * t + b * t - t * t;
+    return area * 0.00785; // kg/m
+  }
+
+  const fb = normalized.match(/fb\s*(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)/);
+  if (fb) {
+    const w = Number(fb[1]);
+    const t = Number(fb[2]);
+    return w * t * 0.00785;
+  }
+
+  return 0;
+}
+
+function getBarWeight(lengthMm, kgPerMeter) {
+  if (!kgPerMeter) return 0;
+  return (lengthMm / 1000) * kgPerMeter;
+}
+
+function formatBarKg(value) {
+  if (!Number.isFinite(value) || value <= 0) return "-";
+  return `${value.toFixed(2)}kg`;
+}
+
+function getBarCutInstruction(bar, kerf) {
+  const cuts = bar.parts.map((p, i) => `${i + 1}. ${p.length}mm`).join(" → ");
+  const loss = bar.cutCount > 0 ? ` / 切断ロス ${bar.cutCount}回×${kerf}mm` : "";
+  return `${cuts}${loss} / 端材 ${Math.round(bar.scrap)}mm`;
+}
+
 function SingleCalc({ materials, setMaterials }) {
   const [materialId, setMaterialId] = useState(materials[0]?.id || "m1");
   const current = materials.find((m) => m.id === materialId) || materials[0];
 
+  const [barProjectName, setBarProjectName] = useState("");
+  const [savedBarProjects, setSavedBarProjects] = useState(loadLocal("barProjects", []));
   const [materialName, setMaterialName] = useState(current?.name || "40x40x4L");
   const [stockLength, setStockLength] = useState(current?.stockLength || 5500);
   const [kerf, setKerf] = useState(current?.kerf || 3);
+  const [kgPerMeter, setKgPerMeter] = useState(getBarKgPerMeterFromName(current?.name || "40x40x4L").toFixed(3));
   const [partsText, setPartsText] = useState(loadLocal("singlePartsText", SAMPLE_PARTS));
   const [scrapsText, setScrapsText] = useState(loadLocal("scrapsText", "1200\n900"));
 
@@ -1087,10 +1131,15 @@ function SingleCalc({ materials, setMaterials }) {
   }, [scrapsText]);
 
   useEffect(() => {
+    localStorage.setItem("barProjects", JSON.stringify(savedBarProjects));
+  }, [savedBarProjects]);
+
+  useEffect(() => {
     if (current) {
       setMaterialName(current.name);
       setStockLength(current.stockLength);
       setKerf(current.kerf);
+      setKgPerMeter(getBarKgPerMeterFromName(current.name).toFixed(3));
     }
   }, [materialId]);
 
@@ -1104,22 +1153,90 @@ function SingleCalc({ materials, setMaterials }) {
   const compare5500 = useMemo(() => optimize(parts, 5500, Number(kerf), scraps), [parts, kerf, scraps]);
   const compare6000 = useMemo(() => optimize(parts, 6000, Number(kerf), scraps), [parts, kerf, scraps]);
 
+  const totalPartLength = parts.reduce((s, p) => s + p.length, 0);
+  const totalPartWeight = getBarWeight(totalPartLength, Number(kgPerMeter));
+  const totalStockWeight = result.bars
+    .filter((b) => b.source === "定尺")
+    .reduce((s, b) => s + getBarWeight(b.stockLength, Number(kgPerMeter)), 0);
+  const totalScrapWeight = result.bars.reduce((s, b) => s + getBarWeight(b.scrap, Number(kgPerMeter)), 0);
+
   function saveMaterial() {
     const item = { id: uid(), name: materialName, stockLength: Number(stockLength), kerf: Number(kerf) };
     setMaterials((prev) => [...prev, item]);
     setMaterialId(item.id);
   }
 
+  function saveBarProject() {
+    const name = barProjectName.trim() || `定尺案件_${new Date().toLocaleDateString("ja-JP")}`;
+    const item = {
+      id: uid(),
+      name,
+      savedAt: new Date().toLocaleString("ja-JP"),
+      materialName,
+      stockLength,
+      kerf,
+      kgPerMeter,
+      partsText,
+      scrapsText,
+    };
+    setSavedBarProjects((prev) => [item, ...prev].slice(0, 20));
+    setBarProjectName(name);
+  }
+
+  function loadBarProject(id) {
+    const item = savedBarProjects.find((p) => p.id === id);
+    if (!item) return;
+    setBarProjectName(item.name);
+    setMaterialName(item.materialName || "");
+    setStockLength(item.stockLength || 5500);
+    setKerf(item.kerf || 3);
+    setKgPerMeter(item.kgPerMeter || "0");
+    setPartsText(item.partsText || "");
+    setScrapsText(item.scrapsText || "");
+  }
+
+  function deleteBarProject(id) {
+    setSavedBarProjects((prev) => prev.filter((p) => p.id !== id));
+  }
+
   return (
     <div className="grid">
       <section className="panel no-print">
+        <label>案件名</label>
+        <input value={barProjectName} onChange={(e) => setBarProjectName(e.target.value)} placeholder="例：〇〇現場 手すりアングル" />
+
+        <div className="project-actions">
+          <button type="button" className="sub" onClick={saveBarProject}>案件保存</button>
+          <select defaultValue="" onChange={(e) => loadBarProject(e.target.value)}>
+            <option value="" disabled>保存案件を呼び出し</option>
+            {savedBarProjects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name} / {p.savedAt}</option>
+            ))}
+          </select>
+        </div>
+
+        {savedBarProjects.length > 0 && (
+          <div className="saved-list">
+            {savedBarProjects.slice(0, 5).map((p) => (
+              <div key={p.id}>
+                <span>{p.name}</span>
+                <button type="button" className="mini-danger" onClick={() => deleteBarProject(p.id)}>削除</button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <label>登録材料から選択</label>
         <select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
           {materials.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
 
         <label>材料名</label>
-        <input value={materialName} onChange={(e) => setMaterialName(e.target.value)} />
+        <input value={materialName} onChange={(e) => {
+          setMaterialName(e.target.value);
+          const auto = getBarKgPerMeterFromName(e.target.value);
+          if (auto) setKgPerMeter(auto.toFixed(3));
+        }} />
 
         <div className="two">
           <div>
@@ -1131,6 +1248,10 @@ function SingleCalc({ materials, setMaterials }) {
             <input type="number" value={kerf} onChange={(e) => setKerf(e.target.value)} />
           </div>
         </div>
+
+        <label>重量 kg/m</label>
+        <input type="number" step="0.001" value={kgPerMeter} onChange={(e) => setKgPerMeter(e.target.value)} />
+        <p className="hint">40x40x4L などは概算自動入力。正確に出す場合は鋼材表のkg/mを入力してください。</p>
 
         <label>部材寸法</label>
         <textarea value={partsText} onChange={(e) => setPartsText(e.target.value)} />
@@ -1148,11 +1269,17 @@ function SingleCalc({ materials, setMaterials }) {
 
       <section className="result">
         <div className="print-title">
-          <h2>定尺取り合い切断指示書</h2>
-          <p>材料：{materialName} / 定尺：{stockLength}mm / 切断ロス：{kerf}mm</p>
+          <h2>定尺取り合い切断指示書{barProjectName ? `：${barProjectName}` : ""}</h2>
+          <p>材料：{materialName} / 定尺：{stockLength}mm / 切断ロス：{kerf}mm / 重量：{kgPerMeter}kg/m</p>
         </div>
 
         <Summary result={result} parts={parts} />
+
+        <div className="sheet-weight bar-total-weight">
+          <span>部材重量：{formatBarKg(totalPartWeight)}</span>
+          <span>新品定尺重量：{formatBarKg(totalStockWeight)}</span>
+          <span>端材重量目安：{formatBarKg(totalScrapWeight)}</span>
+        </div>
 
         <div className="compare no-print">
           <h3>5.5m / 6m 比較</h3>
@@ -1175,11 +1302,49 @@ function SingleCalc({ materials, setMaterials }) {
         )}
 
         <h3>割付結果・切断指示</h3>
-        <Bars result={result} kerf={kerf} />
+        <div className="bars">
+          {result.bars.map((bar) => {
+            const usedPartLength = bar.parts.reduce((s, p) => s + p.length, 0);
+            const usedWeight = getBarWeight(usedPartLength, Number(kgPerMeter));
+            const stockWeight = bar.source === "定尺" ? getBarWeight(bar.stockLength, Number(kgPerMeter)) : getBarWeight(bar.stockLength, Number(kgPerMeter));
+            const scrapWeight = getBarWeight(bar.scrap, Number(kgPerMeter));
+
+            return (
+              <div className="bar-card" key={bar.id}>
+                <div className="bar-head">
+                  <strong>{bar.source === "端材" ? bar.label : `定尺 ${bar.index}`}</strong>
+                  <span>{bar.source}</span>
+                </div>
+                <p className="bar-meta">使用 {Math.round(bar.used)}mm / 端材 {Math.round(bar.scrap)}mm</p>
+
+                <div className="sheet-weight">
+                  <span>元材重量：{formatBarKg(stockWeight)}</span>
+                  <span>部材重量：{formatBarKg(usedWeight)}</span>
+                  <span>端材重量：{formatBarKg(scrapWeight)}</span>
+                </div>
+
+                <div className="bar-visual">
+                  {bar.parts.map((part, i) => {
+                    const width = Math.max(6, (part.length / Math.max(1, bar.stockLength)) * 100);
+                    return (
+                      <div className="piece" style={{ width: `${width}%` }} key={`${part.id}-${i}`}>
+                        {part.length}
+                      </div>
+                    );
+                  })}
+                  {bar.scrap > 0 && <div className="scrap">端材 {Math.round(bar.scrap)}</div>}
+                </div>
+
+                <p className="cut-line">{getBarCutInstruction(bar, kerf)}</p>
+              </div>
+            );
+          })}
+        </div>
       </section>
     </div>
   );
 }
+
 
 function PlateCalc() {
   const [mode, setMode] = useState("laser");
@@ -1504,7 +1669,7 @@ function App() {
     <main>
       <header className="no-print">
         <h1>定尺・4×8板取り合い計算アプリ</h1>
-        <p>Step7：重量・寸法線・案件保存・実機向けシャーリング順を追加しています。</p>
+        <p>Step8：定尺計算にも重量・案件保存・現場向け切断指示を追加しています。</p>
       </header>
 
       <nav className="tabs no-print">

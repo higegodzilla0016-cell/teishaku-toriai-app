@@ -958,3 +958,25 @@ textarea.small {
     font-size: 12px;
   }
 }
+
+
+/* Step8 定尺計算の現場機能 */
+.bar-total-weight {
+  margin-bottom: 14px;
+}
+
+@media print {
+  .bar-total-weight,
+  .bar-card .sheet-weight {
+    display: flex !important;
+  }
+
+  .bar-visual {
+    height: 32px !important;
+  }
+
+  .piece,
+  .scrap {
+    font-size: 7pt !important;
+  }
+}
